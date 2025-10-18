@@ -24,15 +24,14 @@ class ProfilePage extends StatelessWidget {
               radius: 40,
               backgroundColor: Colors.deepPurple,
               child: Text(
-                user?.email?.substring(0, 1).toUpperCase() ?? "?", // remplace par initial du prénom plus tard !
+                user?.email?.substring(0, 1).toUpperCase() ?? "?",
                 style: const TextStyle(fontSize: 32, color: Colors.white),
               ),
             ),
             const SizedBox(height: 12),
             Text(user?.email ?? "N/A", style: const TextStyle(fontSize: 20)),
-            // Ton widget "ProfilePreferences"
-            Expanded(child: Container()), // Pour prendre la place restante
-            // Bouton de déconnexion tout en bas
+            Expanded(child: Container()),
+
             Padding(
               padding: const EdgeInsets.only(bottom: 32.0),
               child: ElevatedButton.icon(
