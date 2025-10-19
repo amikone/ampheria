@@ -37,7 +37,7 @@ class BottomNavBar extends StatelessWidget {
           label: 'Profil',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.money),
+          icon: Icon(Icons.monetization_on_outlined),
           label: 'Health',
         ),
       ],
