@@ -30,11 +30,20 @@ android {
         versionName = flutter.versionName
     }
 
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("C:\\Users\\adf7b\\Nextcloud\\Boulot\\Endide\\Keystore\\endide.keystore")
+            storePassword = "Endide3220"
+            keyAlias = "endide-upload"
+            keyPassword = "Endide3220"
+        }
+    }
+
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("release") {
+            isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

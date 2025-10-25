@@ -66,7 +66,6 @@ class _ProfileDetailModalState extends State<ProfileDetailModal> {
         final birthDate = profile['birth_date'] != null
             ? DateFormat.yMMMMd().format(DateTime.parse(profile['birth_date']))
             : 'Non précisée';
-        final preferences = profile['user_preferences'] ?? {};
 
         return SingleChildScrollView(
           child: Padding(

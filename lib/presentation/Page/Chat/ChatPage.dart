@@ -134,13 +134,11 @@ class _ConversationPageState extends State<ConversationPage> {
       'created_at': DateTime.now().toIso8601String(),
     };
 
-    // Ajouter localement pour affichage instantané
     setState(() {
       _messages.add(newMessage);
     });
     _scrollToBottom();
 
-    // Envoyer à Supabase
     await supabase.from('messages').insert(newMessage);
 
     _controller.clear();

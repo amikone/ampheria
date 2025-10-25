@@ -13,7 +13,7 @@ class HealthPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Soutenir Ampheria ❤️'),
+        title: const Text('Soutenir Amikone ❤️'),
         backgroundColor: Colors.deepPurple,
       ),
       body: Padding(

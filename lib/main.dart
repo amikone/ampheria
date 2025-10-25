@@ -3,7 +3,6 @@ import 'package:ampheria/presentation/Page/Chat/ChatPage.dart';
 import 'package:ampheria/presentation/Page/Health/HealthPage.dart';
 import 'package:ampheria/presentation/Page/Like/LikePage.dart';
 import 'package:ampheria/presentation/Page/People/PeoplePage.dart';
-import 'package:ampheria/presentation/Page/Profile/ProfilePage.dart';
 import 'package:ampheria/presentation/Page/Profile/ProfileScreen.dart';
 import 'package:ampheria/presentation/Widgets/BottomNavBar.dart';
 import 'package:flutter/material.dart';
@@ -26,11 +25,26 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Ampheria',
+      title: 'Amikone',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        scaffoldBackgroundColor: Colors.grey[100],
+      theme: ThemeData.dark().copyWith(
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.deepPurple,
+          secondary: Colors.deepPurpleAccent,
+          surface: Color(0xFF1E1E2C),
+          background: Color(0xFF121212),
+        ),
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1E1E2C),
+          titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
+          iconTheme: IconThemeData(color: Colors.white),
+        ),
+        cardColor: const Color(0xFF1E1E2C),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Colors.white70),
+          bodyMedium: TextStyle(color: Colors.white60),
+        ),
       ),
       home: const AuthStateHandler(),
     );
@@ -61,7 +75,7 @@ class _AuthStateHandlerState extends State<AuthStateHandler> {
   @override
   Widget build(BuildContext context) {
     if (_session != null) {
-      return const MainPage(); // 🔹 Notre page principale avec la barre de navigation
+      return const MainPage();
     } else {
       return const LoginPage();
     }

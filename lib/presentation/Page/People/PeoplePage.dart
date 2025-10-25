@@ -124,7 +124,6 @@ class _PeoplePageState extends State<PeoplePage> {
     final currentPhoto = photos.isNotEmpty
         ? photos[_currentPhotoIndex]
         : "https://via.placeholder.com/400x400?text=No+Photo";
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -156,8 +155,6 @@ class _PeoplePageState extends State<PeoplePage> {
                   ),
                 ),
               ),
-
-              // 🧾 Overlay bio
               if (_showBio)
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 300),
@@ -203,10 +200,8 @@ class _PeoplePageState extends State<PeoplePage> {
                     ),
                   ),
                 ),
-
-              // 🔎 Bouton "Voir plus"
               Positioned(
-                bottom: 110, // légèrement au-dessus des boutons Like/Dislike
+                bottom: 110,
                 left: 0,
                 right: 0,
                 child: Center(
