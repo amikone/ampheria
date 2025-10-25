@@ -134,7 +134,8 @@ class _ProfileDetailModalState extends State<ProfileDetailModal> {
                 // Bouton fermer
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Fermer'),
+                  child: const Text('Fermer', style: TextStyle(color: Colors.white70)),
+
                 ),
               ],
             ),

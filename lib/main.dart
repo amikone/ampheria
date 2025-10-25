@@ -32,7 +32,6 @@ class MyApp extends StatelessWidget {
           primary: Colors.deepPurple,
           secondary: Colors.deepPurpleAccent,
           surface: Color(0xFF1E1E2C),
-          background: Color(0xFF121212),
         ),
         scaffoldBackgroundColor: const Color(0xFF121212),
         appBarTheme: const AppBarTheme(

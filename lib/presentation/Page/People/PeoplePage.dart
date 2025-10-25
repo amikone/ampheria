@@ -214,7 +214,7 @@ class _PeoplePageState extends State<PeoplePage> {
                           backgroundColor: Colors.transparent,
                           builder: (_) => Container(
                             decoration: const BoxDecoration(
-                              color: Colors.white,
+                              color: Color(0xFF1E1E2C), // fond sombre ici
                               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                             ),
                             child: ProfileDetailModal(profileId: _profile!['id']),
