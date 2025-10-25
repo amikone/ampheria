@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../Widgets/ProfileDetailModal.dart';
+
 class PeoplePage extends StatefulWidget {
   const PeoplePage({super.key});
 
@@ -202,6 +204,35 @@ class _PeoplePageState extends State<PeoplePage> {
                   ),
                 ),
 
+              // 🔎 Bouton "Voir plus"
+              Positioned(
+                bottom: 110, // légèrement au-dessus des boutons Like/Dislike
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_profile != null) {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            ),
+                            child: ProfileDetailModal(profileId: _profile!['id']),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text("Voir plus"),
+                  ),
+                ),
+              ),
+
+
               // ❤️ / ❌ boutons
               Positioned(
                 bottom: 40,
@@ -226,6 +257,7 @@ class _PeoplePageState extends State<PeoplePage> {
                 ),
               ),
             ],
+
           ),
         ),
       ),

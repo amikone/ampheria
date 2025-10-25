@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -83,26 +85,41 @@ class _ConversationPageState extends State<ConversationPage> {
   final ScrollController _scrollController = ScrollController();
 
   List<Map<String, dynamic>> _messages = [];
-  late final Stream<List<Map<String, dynamic>>> _messagesStream;
+  StreamSubscription<List<Map<String, dynamic>>>? _subscription;
 
   @override
   void initState() {
     super.initState();
     _loadMessages();
-    _messagesStream = supabase
-        .from('messages:match_id=eq.${widget.matchId}')
-        .stream(primaryKey: ['id']);
+    _subscribeToRealtime();
   }
 
-  void _loadMessages() async {
-    final data = await supabase
+  // 1️⃣ Charger les messages existants
+  Future<void> _loadMessages() async {
+    final initial = await supabase
         .from('messages')
         .select()
         .eq('match_id', widget.matchId)
         .order('created_at', ascending: true);
-
     setState(() {
-      _messages = List<Map<String, dynamic>>.from(data);
+      _messages = List<Map<String, dynamic>>.from(initial);
+    });
+    _scrollToBottom();
+  }
+
+  // 2️⃣ S'abonner aux updates Realtime
+  void _subscribeToRealtime() {
+    _subscription = supabase
+        .from('messages')                  // juste la table
+        .stream(primaryKey: ['id'])
+        .eq('match_id', widget.matchId)   // filtre sur le match
+        .listen((updates) {
+      if (updates.isNotEmpty) {
+        setState(() {
+          _messages = List<Map<String, dynamic>>.from(updates);
+        });
+        _scrollToBottom();
+      }
     });
   }
 
@@ -110,23 +127,43 @@ class _ConversationPageState extends State<ConversationPage> {
     final content = _controller.text.trim();
     if (content.isEmpty) return;
 
-    await supabase.from('messages').insert({
+    final newMessage = {
       'match_id': widget.matchId,
       'sender_id': supabase.auth.currentUser!.id,
       'content': content,
+      'created_at': DateTime.now().toIso8601String(),
+    };
+
+    // Ajouter localement pour affichage instantané
+    setState(() {
+      _messages.add(newMessage);
     });
+    _scrollToBottom();
+
+    // Envoyer à Supabase
+    await supabase.from('messages').insert(newMessage);
 
     _controller.clear();
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -136,38 +173,29 @@ class _ConversationPageState extends State<ConversationPage> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _messagesStream,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  final messages = snapshot.data!;
-                  WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-
-                  return ListView.builder(
-                    controller: _scrollController,
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = messages[index];
-                      final isMe = msg['sender_id'] == supabase.auth.currentUser!.id;
-                      return Container(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isMe ? Colors.blue : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: Text(
-                            msg['content'],
-                            style: TextStyle(color: isMe ? Colors.white : Colors.black),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }
-                return const Center(child: CircularProgressIndicator());
+            child: _messages.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+              controller: _scrollController,
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final msg = _messages[index];
+                final isMe = msg['sender_id'] == supabase.auth.currentUser!.id;
+                return Container(
+                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isMe ? Colors.blue : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: Text(
+                      msg['content'],
+                      style: TextStyle(color: isMe ? Colors.white : Colors.black),
+                    ),
+                  ),
+                );
               },
             ),
           ),
@@ -183,6 +211,7 @@ class _ConversationPageState extends State<ConversationPage> {
                         hintText: "Écrire un message...",
                         border: OutlineInputBorder(),
                       ),
+                      onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
                   IconButton(
@@ -198,4 +227,7 @@ class _ConversationPageState extends State<ConversationPage> {
     );
   }
 }
+
+
+
 

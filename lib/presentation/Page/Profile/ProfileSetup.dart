@@ -35,7 +35,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     setState(() { _loading = false; });
 
     if (!mounted) return;
-    Navigator.pop(context); // <-- On revient à ProfileScreen !
+    Navigator.pop(context);
   }
 
   @override

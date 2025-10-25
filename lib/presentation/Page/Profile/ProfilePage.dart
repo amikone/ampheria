@@ -123,17 +123,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
     final file = File(picked.path);
 
-    // 👇 Important : le chemin DOIT inclure l’UID de l’utilisateur
     final fileName = "${DateTime.now().millisecondsSinceEpoch}.jpg";
-    final filePath = "${user.id}/$fileName"; // Dossier personnel
+    final filePath = "${user.id}/$fileName";
 
     try {
-      // 🔒 Upload dans le dossier de l'utilisateur
       await supabase.storage
           .from('profiles-picture')
           .upload(filePath, file, fileOptions: const FileOptions(upsert: true));
 
-      // 🔗 Récupération de l'URL publique
       final publicUrl =
       supabase.storage.from('profiles-picture').getPublicUrl(filePath);
 

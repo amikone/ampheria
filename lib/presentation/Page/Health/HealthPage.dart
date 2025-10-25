@@ -34,7 +34,6 @@ class HealthPage extends StatelessWidget {
             ),
             const SizedBox(height: 32),
 
-            // ✅ Objectif visuel
             Text(
               'Objectif : ${objectif.toStringAsFixed(0)} €',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
@@ -55,7 +54,6 @@ class HealthPage extends StatelessWidget {
 
             const SizedBox(height: 40),
 
-            // ✅ Liste des limites actuelles Supabase
             const Text(
               'Limites actuelles de Supabase : 🚧',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -80,15 +78,10 @@ class HealthPage extends StatelessWidget {
 
             const Spacer(),
 
-            // ✅ Bouton de don
             Center(
               child: ElevatedButton.icon(
                 onPressed: () {
-                  // 🔹 Plus tard tu pourras intégrer Stripe / PayPal ici
-                  // Exemple : ouvrir un lien de don
                   const url = 'https://www.buymeacoffee.com/tonpseudo';
-                  // ignore: deprecated_member_use
-                  // launch(url);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Redirection vers la page de don 💜'),

@@ -38,6 +38,8 @@ dependencies:
   supabase_flutter: ^2.10.3
   supabase_auth_ui: ^0.5.5
   image_picker: ^1.2.0
+  flutter_chat_core: ^2.0.0
+  flutter_chat_ui: ^2.0.0
 
 dev_dependencies:
   flutter_test:

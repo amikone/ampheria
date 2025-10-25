@@ -68,7 +68,6 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
-                // ✅ Bouton de connexion Google
                 SupaSocialsAuth(
                   socialProviders: const [OAuthProvider.google],
                   colored: true,
