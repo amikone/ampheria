@@ -117,7 +117,7 @@ class _LikePageState extends State<LikePage> {
                               children: [
                                 ElevatedButton(
                                   onPressed: () => _likeBack(profile['id']),
-                                  child: const Icon(Icons.favorite, size: 20),
+                                  child: const Icon(Icons.favorite, size: 16),
                                 ),
                                 ElevatedButton(
                                   onPressed: () {

@@ -27,7 +27,7 @@ class HealthPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             const Text(
-              "Ampheria est une application 100% gratuite. "
+              "Amikone est une application 100% gratuite. "
                   "Mais pour continuer à fonctionner, elle dépend d’un hébergement Supabase et d’autres services payants. "
                   "Vos dons permettent de garder l’app en ligne et de financer de nouvelles fonctionnalités.",
               style: TextStyle(fontSize: 16, height: 1.4),
@@ -49,7 +49,7 @@ class HealthPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               '${actuel.toStringAsFixed(1)} € collectés',
-              style: const TextStyle(fontSize: 16, color: Colors.black54),
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
 
             const SizedBox(height: 40),
