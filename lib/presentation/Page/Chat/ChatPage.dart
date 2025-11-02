@@ -1,7 +1,18 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_chat_core/flutter_chat_core.dart';
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:flyer_chat_image_message/flyer_chat_image_message.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mime/mime.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
+import 'package:uuid/uuid.dart';
+
+
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -69,6 +80,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
+
 class ConversationPage extends StatefulWidget {
   final int matchId;
   final Map<String, dynamic> user;
@@ -81,151 +93,263 @@ class ConversationPage extends StatefulWidget {
 
 class _ConversationPageState extends State<ConversationPage> {
   final supabase = Supabase.instance.client;
-  final TextEditingController _controller = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-
-  List<Map<String, dynamic>> _messages = [];
+  final _chatController = InMemoryChatController();
   StreamSubscription<List<Map<String, dynamic>>>? _subscription;
+
+  var _currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    _currentUserId = supabase.auth.currentUser?.id ?? '';
+    if (_currentUserId.isEmpty) { /* handle auth logic */ }
     _subscribeToRealtime();
   }
 
-  // 1️⃣ Charger les messages existants
-  Future<void> _loadMessages() async {
-    final initial = await supabase
-        .from('messages')
-        .select()
-        .eq('match_id', widget.matchId)
-        .order('created_at', ascending: true);
-    setState(() {
-      _messages = List<Map<String, dynamic>>.from(initial);
-    });
-    _scrollToBottom();
+  final _signedUrlCache = <String, String>{}; // key = file_path, value = url
+
+  Future<String> _signedUrlFor(String path, {int expiresSeconds = 3600}) async {
+    if (_signedUrlCache.containsKey(path)) return _signedUrlCache[path]!;
+    final res = await supabase
+        .storage
+        .from('chat-pictures')
+        .createSignedUrl(path, expiresSeconds);
+    final url = res;
+    _signedUrlCache[path] = res;
+    return res;
   }
 
-  // 2️⃣ S'abonner aux updates Realtime
   void _subscribeToRealtime() {
     _subscription = supabase
-        .from('messages')                  // juste la table
+        .from('messages')
         .stream(primaryKey: ['id'])
-        .eq('match_id', widget.matchId)   // filtre sur le match
-        .listen((updates) {
-      if (updates.isNotEmpty) {
-        setState(() {
-          _messages = List<Map<String, dynamic>>.from(updates);
-        });
-        _scrollToBottom();
+        .eq('match_id', widget.matchId)
+        .order('created_at', ascending: true)
+        .listen((rows) async {
+      final msgs = <Message>[];
+      for (final msg in rows) {
+        final createdAt = DateTime.parse(msg['created_at']).toUtc();
+        final type = (msg['type'] ?? 'text');
+        if (type == 'image' && msg['file_path'] != null) {
+          final path = msg['file_path'] as String;
+          final url = await _signedUrlFor(path);
+          msgs.add(
+            ImageMessage(
+              id: msg['id'].toString(),
+              authorId: msg['sender_id'],
+              size: (msg['file_size'] as int?) ?? 0,
+              createdAt: createdAt, source: url,
+              metadata: {'file_path': path},
+            ),
+          );
+        } else {
+          msgs.add(
+            TextMessage(
+              id: msg['id'].toString(),
+              authorId: msg['sender_id'],
+              text: msg['content'] ?? '',
+              createdAt: createdAt,
+            ),
+          );
+        }
       }
+      _chatController.setMessages(msgs);
     });
   }
 
-  void _sendMessage() async {
-    final content = _controller.text.trim();
-    if (content.isEmpty) return;
 
+  void _handleSendPressed(String text) async {
+    if (text.trim().isEmpty) return;
+
+    final now = DateTime.now();
     final newMessage = {
       'match_id': widget.matchId,
-      'sender_id': supabase.auth.currentUser!.id,
-      'content': content,
-      'created_at': DateTime.now().toIso8601String(),
+      'sender_id': _currentUserId,
+      'content': text.trim(),
+      'created_at': now.toIso8601String(),
     };
 
-    setState(() {
-      _messages.add(newMessage);
-    });
-    _scrollToBottom();
-
-    await supabase.from('messages').insert(newMessage);
-
-    _controller.clear();
+    await supabase.from('messages').insert(newMessage).select().single();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+
+
+
+  Future<User> _resolveUser(String userId) async {
+    if (userId == _currentUserId) {
+      return User(id: _currentUserId, name: 'Me');
+    } else {
+      return User(
+        id: userId,
+        name: widget.user['full_name'] ?? widget.user['username'],
+      );
+    }
+  }
+
+  void _onMessageLongPress(
+      BuildContext context,
+      Message message, {
+        int? index,
+        LongPressStartDetails? details,
+      }) {
+    showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer ce message ?'),
+        content: const Text('Cette action est irréversible.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    ).then((confirm) {
+      if (confirm == true) {
+        _deleteMessage(message);
       }
     });
+  }
+
+  Future<void> _deleteMessage(Message message) async {
+    await supabase.from('messages').delete().eq('id', message.id);
+
+    if (message is ImageMessage) {
+      final filePath = message.metadata?['file_path'];
+      if (filePath != null && filePath is String && filePath.isNotEmpty) {
+        try {
+          await supabase.storage.from('chat-pictures').remove([filePath]);
+        } catch (e) {
+          // ignore ou affiche une erreur/toast si tu veux
+        }
+      }
+    }
   }
 
   @override
   void dispose() {
     _subscription?.cancel();
-    _controller.dispose();
-    _scrollController.dispose();
+    _chatController.dispose();
+
     super.dispose();
   }
+
+  final _picker = ImagePicker();
+
+  Future<void> _onAttachmentPressed() async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 2000,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+
+    final bytes = await picked.readAsBytes();
+    final ext = picked.name.split('.').last.toLowerCase();
+    final mimeType = lookupMimeType(picked.name) ?? 'image/$ext';
+    final fileName = '${const Uuid().v4()}.$ext';
+    final storagePath = '${widget.matchId}/$_currentUserId/$fileName';
+
+    final compressedBytes = await FlutterImageCompress.compressWithFile(
+      picked.path,
+      quality: 80,
+    );
+
+
+    if (compressedBytes == null) return;
+
+    const maxSize = 2 * 1024 * 1024; // 2 Mo
+    if (compressedBytes.length > maxSize) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("L'image dépasse 2 Mo")),
+      );
+      return;
+    }
+
+    // Upload dans le bucket privé
+    await supabase.storage.from('chat-pictures').uploadBinary(
+      storagePath,
+      compressedBytes,
+      fileOptions: FileOptions(contentType: mimeType, upsert: false),
+    );
+
+
+
+    // Enregistre le message image dans la base
+    await supabase.from('messages').insert({
+      'match_id': widget.matchId,
+      'sender_id': _currentUserId,
+      'type': 'image',
+      'file_path': storagePath,
+      'file_mime': mimeType,
+      'file_size': bytes.length,
+      // 'created_at' laissé auto par la base
+    });
+  }
+
+  Future<void> showZoomableImage(BuildContext context, String imageUrl) {
+    return showDialog(
+      context: context,
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Container(
+          color: Colors.black,
+          child: PhotoView(
+            imageProvider: NetworkImage(imageUrl),
+            backgroundDecoration: const BoxDecoration(color: Colors.black),
+          ),
+        ),
+      ),
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.user['full_name'] ?? widget.user['username'])),
-      body: Column(
-        children: [
-          Expanded(
-            child: _messages.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-              controller: _scrollController,
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final isMe = msg['sender_id'] == supabase.auth.currentUser!.id;
-                return Container(
-                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      body: Chat(
+        chatController: _chatController,
+        currentUserId: _currentUserId,
+        onMessageSend: _handleSendPressed,
+        resolveUser: _resolveUser,
+        theme: ChatTheme.dark(),
+        onAttachmentTap: _onAttachmentPressed,
+        builders: Builders(
+          imageMessageBuilder: (context, message, index, {
+            required bool isSentByMe,
+            MessageGroupStatus? groupStatus,
+          }) {
+            return GestureDetector(
+              onTap: () => showDialog(
+                context: context,
+                builder: (context) => GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
                   child: Container(
-                    decoration: BoxDecoration(
-                      color: isMe ? Colors.blue : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: Text(
-                      msg['content'],
-                      style: TextStyle(color: isMe ? Colors.white : Colors.black),
+                    color: Colors.black,
+                    child: PhotoView(
+                      imageProvider: NetworkImage((message).source),
+                      backgroundDecoration: const BoxDecoration(color: Colors.black),
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: "Écrire un message...",
-                        border: OutlineInputBorder(),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: _sendMessage,
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
-      ),
+              child: FlyerChatImageMessage(
+                message: message,
+                index: index,
+                // Les autres params si besoin,
+              ),
+            );
+          },
+        ),
+        onMessageLongPress: _onMessageLongPress,
+      )
     );
   }
 }
-
-
-
-

@@ -79,7 +79,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (picked == null) return;
 
     final file = File(picked.path);
-    final fileSize = await file.length();
 
     final compressedBytes = await FlutterImageCompress.compressWithFile(
       file.absolute.path,
