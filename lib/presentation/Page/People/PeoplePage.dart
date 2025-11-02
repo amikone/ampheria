@@ -144,7 +144,6 @@ class _PeoplePageState extends State<PeoplePage> {
           },
           child: Stack(
             children: [
-              // 🖼️ Photo
               Positioned.fill(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 400),
@@ -227,8 +226,6 @@ class _PeoplePageState extends State<PeoplePage> {
                 ),
               ),
 
-
-              // ❤️ / ❌ boutons
               Positioned(
                 bottom: 40,
                 left: 40,

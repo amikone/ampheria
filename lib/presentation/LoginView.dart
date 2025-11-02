@@ -39,7 +39,6 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
 
-                // ✅ Auth form email/password (fourni par supabase_auth_ui)
                 SupaEmailAuth(
                   redirectTo: kIsWeb ? null : 'io.supabase.flutter://callback',
                   onSignInComplete: (response) {
@@ -54,7 +53,6 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
-                // ✅ Divider
                 Row(
                   children: const [
                     Expanded(child: Divider(thickness: 1)),
