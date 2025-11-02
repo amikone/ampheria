@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -34,7 +35,6 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadUserTags();
   }
 
-  // ------------------- PROFILE -------------------
   Future<void> _loadProfile() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
@@ -79,24 +79,44 @@ class _ProfilePageState extends State<ProfilePage> {
     if (picked == null) return;
 
     final file = File(picked.path);
-    final fileName = "${DateTime.now().millisecondsSinceEpoch}.jpg";
-    final filePath = "${user.id}/$fileName";
+    final fileSize = await file.length();
+
+    final compressedBytes = await FlutterImageCompress.compressWithFile(
+      file.absolute.path,
+      quality: 80,
+    );
+
+    if (compressedBytes == null) return;
+
+    const maxSize = 2 * 1024 * 1024; // 2 Mo
+    if (compressedBytes.length > maxSize) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("L'image dépasse 2 Mo")),
+      );
+      return;
+    }
 
     try {
-      await supabase.storage
-          .from('profiles-picture')
-          .upload(filePath, file, fileOptions: const FileOptions(upsert: true));
+      final response = await supabase.functions.invoke(
+        'upload-profile-photo',
+        body: {
+          'file_data': compressedBytes,
+        },
+      );
 
-      final publicUrl =
-      supabase.storage.from('profiles-picture').getPublicUrl(filePath);
+      final data = response.data as Map<String, dynamic>;
+      final imageUrl = data['url'];
 
-      setState(() => _photos.add(publicUrl));
-
+      setState(() => _photos.add(imageUrl));
       await _saveProfile();
-    } catch (e) {
-      debugPrint("Erreur d'upload: $e");
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erreur lors de l'upload de l'image: $e")),
+        const SnackBar(content: Text("Image uploadée avec succès !")),
+      );
+    } catch (e) {
+      debugPrint("Erreur lors de l'appel à la fonction: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur: $e")),
       );
     }
   }
@@ -126,7 +146,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // ------------------- PREFERENCES -------------------
   Future<void> _loadPreferences() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
@@ -185,12 +204,10 @@ class _ProfilePageState extends State<ProfilePage> {
         .select('tag_id, tags(name)')
         .eq('profile_id', user.id);
 
-    if (response != null) {
-      setState(() {
-        _tags = List<String>.from(response.map((e) => e['tags']['name']));
-      });
+    setState(() {
+      _tags = List<String>.from(response.map((e) => e['tags']['name']));
+    });
     }
-  }
 
   Future<List<String>> searchTags(String query) async {
     if (query.isEmpty) return [];
@@ -206,24 +223,19 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    // 1️⃣ Récupérer les tags actuels en base pour cet utilisateur
     final current = await supabase
         .from('profile_tags')
         .select('tag_id, tags(name)')
         .eq('profile_id', user.id);
 
     Map<String, int> currentMap = {};
-    if (current != null) {
-      for (var t in current) {
-        currentMap[t['tags']['name']] = t['tag_id'];
-      }
+    for (var t in current) {
+      currentMap[t['tags']['name']] = t['tag_id'];
     }
 
-    // 2️⃣ Ajouter ou upsert les tags sélectionnés
     for (String tag in _tags) {
       int tagId;
 
-      // vérifier si le tag existe déjà en base
       final tagResponse = await supabase
           .from('tags')
           .select('id')
@@ -241,7 +253,6 @@ class _ProfilePageState extends State<ProfilePage> {
         tagId = insert?['id'];
       }
 
-      // Upsert profile_tags si pas déjà lié
       if (!currentMap.containsKey(tag)) {
         await supabase.from('profile_tags').upsert({
           'profile_id': user.id,
@@ -250,7 +261,6 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     }
 
-    // 3️⃣ Supprimer les tags retirés par l'utilisateur
     for (var entry in currentMap.entries) {
       if (!_tags.contains(entry.key)) {
         await supabase
@@ -267,13 +277,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
 
-  // ------------------- LOGOUT -------------------
   Future<void> _signOut(BuildContext context) async {
     await supabase.auth.signOut();
     if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
   }
 
-  // ------------------- BUILD -------------------
   @override
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
@@ -305,7 +313,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 24),
 
-            // ------------------- BIO -------------------
             const Text(
               "Ma description",
               style: TextStyle(
@@ -327,7 +334,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 12),
 
-            // ------------------- PHOTOS -------------------
             const Text(
               "Mes photos",
               style: TextStyle(
@@ -406,7 +412,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 32),
 
-            // ------------------- TAGS -------------------
             const Text(
               "Mes passe-temps",
               style: TextStyle(
@@ -468,7 +473,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 32),
 
-            // ------------------- PREFERENCES -------------------
             const Text(
               "Préférences de rencontre",
               style: TextStyle(

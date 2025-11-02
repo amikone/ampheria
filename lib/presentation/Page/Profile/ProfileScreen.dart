@@ -47,8 +47,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return FutureBuilder<bool>(
       future: _isProfileComplete(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
 
         final isComplete = snapshot.data!;
         if (isComplete) {
