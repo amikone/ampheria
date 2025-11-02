@@ -97,6 +97,7 @@ class _MainPageState extends State<MainPage> {
     ChatPage(),
     ProfileScreen(),
     HealthPage(),
+
   ];
 
   void _onItemTapped(int index) {
