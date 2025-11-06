@@ -30,6 +30,7 @@ class _PeoplePageState extends State<PeoplePage> {
     });
 
     try {
+      // The function should return data in the same format as the profile detail modal
       final response = await supabase.functions.invoke('get-random-users');
       if (mounted) {
         if (response.data != null && response.data is Map<String, dynamic>) {
@@ -244,7 +245,6 @@ class _ProfileCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Image with fade transition
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               transitionBuilder: (child, animation) {
@@ -261,7 +261,6 @@ class _ProfileCard extends StatelessWidget {
                 errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
               ),
             ),
-            // Gradient overlay for text readability
             const Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -274,7 +273,6 @@ class _ProfileCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Photo progress indicators
             if (photos.length > 1)
               Positioned(
                 top: 10,
@@ -285,7 +283,6 @@ class _ProfileCard extends StatelessWidget {
                   currentPhotoIndex: currentPhotoIndex,
                 ),
               ),
-            // Profile info overlay
             Positioned(
               bottom: 20,
               left: 20,
@@ -338,8 +335,8 @@ class _ProfileInfoOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final age = profile['birth_date'] != null ?
     (DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor() : '';
-
     final displayName = "${profile['full_name'] ?? profile['username']}${age.toString().isNotEmpty ? ', $age' : ''}";
+    final interests = List<Map<String, dynamic>>.from(profile['profile_tags'] ?? []);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,7 +370,34 @@ class _ProfileInfoOverlay extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
+        if (interests.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _ProfileInterests(interests: interests),
+        ],
       ],
+    );
+  }
+}
+
+class _ProfileInterests extends StatelessWidget {
+  final List<Map<String, dynamic>> interests;
+
+  const _ProfileInterests({required this.interests});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8.0,
+      runSpacing: 8.0,
+      children: interests.take(3).map((interest) { // Take first 3 interests for preview
+        final tagName = interest['tags']?['name'] ?? 'N/A';
+        return Chip(
+          label: Text(tagName),
+          backgroundColor: const Color(0xFF2C2C3E).withOpacity(0.8),
+          labelStyle: const TextStyle(color: Colors.white, fontSize: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        );
+      }).toList(),
     );
   }
 }
