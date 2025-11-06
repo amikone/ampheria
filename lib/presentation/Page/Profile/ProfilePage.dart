@@ -23,7 +23,6 @@ class _ProfilePageState extends State<ProfilePage> {
   String _bio = '';
   List<String> _photos = [];
 
-  // Tags
   List<String> _tags = [];
   TextEditingController _tagController = TextEditingController();
 
