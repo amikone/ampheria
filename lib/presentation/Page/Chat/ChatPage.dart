@@ -95,6 +95,7 @@ class _ConversationPageState extends State<ConversationPage> {
   final supabase = Supabase.instance.client;
   final _chatController = InMemoryChatController();
   StreamSubscription<List<Map<String, dynamic>>>? _subscription;
+  bool _isLoading = true;
 
   var _currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
 
@@ -102,11 +103,10 @@ class _ConversationPageState extends State<ConversationPage> {
   void initState() {
     super.initState();
     _currentUserId = supabase.auth.currentUser?.id ?? '';
-    if (_currentUserId.isEmpty) { /* handle auth logic */ }
     _subscribeToRealtime();
   }
 
-  final _signedUrlCache = <String, String>{}; // key = file_path, value = url
+  final _signedUrlCache = <String, String>{}; 
 
   Future<String> _signedUrlFor(String path, {int expiresSeconds = 3600}) async {
     if (_signedUrlCache.containsKey(path)) return _signedUrlCache[path]!;
@@ -114,7 +114,6 @@ class _ConversationPageState extends State<ConversationPage> {
         .storage
         .from('chat-pictures')
         .createSignedUrl(path, expiresSeconds);
-    final url = res;
     _signedUrlCache[path] = res;
     return res;
   }
@@ -154,6 +153,11 @@ class _ConversationPageState extends State<ConversationPage> {
         }
       }
       _chatController.setMessages(msgs);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     });
   }
 
@@ -312,6 +316,12 @@ class _ConversationPageState extends State<ConversationPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.user['full_name'] ?? widget.user['username'])),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: Text(widget.user['full_name'] ?? widget.user['username'])),
       body: Chat(
