@@ -24,10 +24,9 @@ class _ProfileDetailModalState extends State<ProfileDetailModal> {
 
   Future<Map<String, dynamic>?> _fetchProfile() async {
     try {
-      // Note: Assuming 'user_interests' table is linked to 'profiles'
       final response = await supabase
           .from('profiles')
-          .select('*')
+          .select('*, profile_tags(tags(name))')
           .eq('id', widget.profileId)
           .maybeSingle();
       return response;
@@ -91,7 +90,7 @@ class _ProfileContentView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final interests = List<Map<String, dynamic>>.from(profile['user_interests'] ?? []);
+    final interests = List<Map<String, dynamic>>.from(profile['profile_tags'] ?? []);
 
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E2C),
@@ -365,11 +364,14 @@ class _ProfileInterests extends StatelessWidget {
           spacing: 12.0,
           runSpacing: 12.0,
           children: interests
-              .map((interest) => Chip(
-                    label: Text(interest['interest_name'] ?? 'N/A'),
-                    backgroundColor: const Color(0xFF2C2C3E),
-                    labelStyle: const TextStyle(color: Colors.white),
-                  ))
+              .map((interest) {
+                    final tagName = interest['tags']?['name'] ?? 'N/A';
+                    return Chip(
+                      label: Text(tagName),
+                      backgroundColor: const Color(0xFF2C2C3E),
+                      labelStyle: const TextStyle(color: Colors.white),
+                    );
+                  })
               .toList(),
         ),
       ],
