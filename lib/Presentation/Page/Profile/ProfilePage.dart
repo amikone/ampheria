@@ -81,6 +81,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _saveProfile() async {
+    // Ne pas sauvegarder si les données initiales ne sont pas encore chargées.
+    if (_loading) return;
+    
     final user = supabase.auth.currentUser;
     if (user == null) return;
 

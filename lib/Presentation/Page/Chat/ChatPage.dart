@@ -14,6 +14,8 @@ import 'package:photo_view/photo_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:uuid/uuid.dart';
 
+import '../../Widgets/ProfileDetailModal.dart';
+
 
 
 class ChatPage extends StatefulWidget {
@@ -408,14 +410,39 @@ class _ConversationPageState extends State<ConversationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final appBar = AppBar(
+      title: GestureDetector(
+        onTap: () {
+          final profileId = widget.user['id'];
+          if (profileId != null) {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => Container(
+                height: MediaQuery.of(context).size.height * 0.9,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E1E2C),
+                  borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: ProfileDetailModal(profileId: profileId),
+              ),
+            );
+          }
+        },
+        child: Text(widget.user['full_name'] ?? widget.user['username']),
+      ),
+    );
+
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text(widget.user['full_name'] ?? widget.user['username'])),
+        appBar: appBar,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(
-      appBar: AppBar(title: Text(widget.user['full_name'] ?? widget.user['username'])),
+      appBar: appBar,
       body: Chat(
         chatController: _chatController,
         currentUserId: _currentUserId,
