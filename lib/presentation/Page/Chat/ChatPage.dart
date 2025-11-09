@@ -165,12 +165,10 @@ class _ConversationPageState extends State<ConversationPage> {
   void _handleSendPressed(String text) async {
     if (text.trim().isEmpty) return;
 
-    final now = DateTime.now();
     final newMessage = {
       'match_id': widget.matchId,
       'sender_id': _currentUserId,
       'content': text.trim(),
-      'created_at': now.toIso8601String(),
     };
 
     await supabase.from('messages').insert(newMessage).select().single();
@@ -292,7 +290,7 @@ class _ConversationPageState extends State<ConversationPage> {
       'file_path': storagePath,
       'file_mime': mimeType,
       'file_size': bytes.length,
-      // 'created_at' laissé auto par la base
+
     });
   }
 

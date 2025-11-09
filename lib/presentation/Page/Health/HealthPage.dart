@@ -16,67 +16,82 @@ class HealthPage extends StatelessWidget {
         title: const Text('Soutenir Amikone ❤️'),
         backgroundColor: Colors.deepPurple,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Pourquoi demander un don ? 💡',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Card(
+              elevation: 4,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.lightbulb_outline, color: Colors.deepPurple),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Pourquoi demander un don ?',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Amikone est une application 100% gratuite, mais son fonctionnement dépend de services payants (hébergement Supabase, etc.). Vos dons nous aident à maintenir l'application en ligne et à développer de nouvelles fonctionnalités.",
+                      style: Theme.of(context).textTheme.bodyLarge,
+                      textAlign: TextAlign.justify,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              "Amikone est une application 100% gratuite. "
-                  "Mais pour continuer à fonctionner, elle dépend d’un hébergement Supabase et d’autres services payants. "
-                  "Vos dons permettent de garder l’app en ligne et de financer de nouvelles fonctionnalités.",
-              style: TextStyle(fontSize: 16, height: 1.4),
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
-            Text(
-              'Objectif : ${objectif.toStringAsFixed(0)} €',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            Card(
+              elevation: 4,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.track_changes, color: Colors.deepPurple),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Notre Objectif de Collecte',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Objectif : ${objectif.toStringAsFixed(0)} €',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: progression,
+                      backgroundColor: Colors.grey[300],
+                      color: Colors.deepPurple,
+                      minHeight: 14,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${actuel.toStringAsFixed(1)} € collectés',
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: progression,
-              backgroundColor: Colors.grey[300],
-              color: Colors.deepPurple,
-              minHeight: 14,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${actuel.toStringAsFixed(1)} € collectés',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-
-            const SizedBox(height: 40),
-
-            const Text(
-              'Limites actuelles de Supabase : 🚧',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            const LimitItem(
-              icon: Icons.storage,
-              label: 'Stockage de fichiers : 1 Go gratuit',
-            ),
-            const LimitItem(
-              icon: Icons.data_usage,
-              label: 'Base de données : 500 Mo de données',
-            ),
-            const LimitItem(
-              icon: Icons.speed,
-              label: 'Requêtes : environ 500.000 / mois',
-            ),
-            const LimitItem(
-              icon: Icons.cloud,
-              label: 'Bande passante : 2 Go par mois',
-            ),
-
-            const Spacer(),
+            const SizedBox(height: 24),
 
             Center(
               child: ElevatedButton.icon(
@@ -90,7 +105,7 @@ class HealthPage extends StatelessWidget {
                 },
                 icon: const Icon(Icons.favorite),
                 label: const Text(
-                  'Faire un don',
+                  'Soutenir Amikone',
                   style: TextStyle(fontSize: 18),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -104,6 +119,7 @@ class HealthPage extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
