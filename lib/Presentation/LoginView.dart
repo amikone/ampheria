@@ -9,9 +9,24 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final supabase = Supabase.instance.client;
+    final darkTheme = ThemeData.dark().copyWith(
+      primaryColor: Colors.deepPurple,
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: Colors.deepPurple,
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFF1E1E2C), // Dark background color
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -30,37 +45,41 @@ class LoginPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
                   'Connectez-vous pour continuer',
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
+                  style: TextStyle(fontSize: 16, color: Colors.white70),
                 ),
                 const SizedBox(height: 32),
 
-                SupaEmailAuth(
-                  redirectTo: kIsWeb ? null : 'io.supabase.flutter://callback',
-                  onSignInComplete: (response) {
-                    debugPrint('✅ Connexion réussie : ${response.user?.email}');
-                    Navigator.pushReplacementNamed(context, '/home');
-                  },
-                  onSignUpComplete: (response) {
-                    debugPrint('🆕 Compte créé : ${response.user?.email}');
-                  },
-                  metadataFields: const [],
+                Theme(
+                  data: darkTheme,
+                  child: SupaEmailAuth(
+                    redirectTo: kIsWeb ? null : 'io.supabase.flutter://callback',
+                    onSignInComplete: (response) {
+                      debugPrint('✅ Connexion réussie : ${response.user?.email}');
+                      Navigator.pushReplacementNamed(context, '/home');
+                    },
+                    onSignUpComplete: (response) {
+                      debugPrint('🆕 Compte créé : ${response.user?.email}');
+                    },
+                    metadataFields: const [],
+                  ),
                 ),
 
                 const SizedBox(height: 24),
 
                 Row(
-                  children: const [
-                    Expanded(child: Divider(thickness: 1)),
-                    Padding(
+                  children: [
+                    const Expanded(child: Divider(thickness: 1, color: Colors.white24)),
+                    const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text('OU'),
+                      child: Text('OU', style: TextStyle(color: Colors.white70)),
                     ),
-                    Expanded(child: Divider(thickness: 1)),
+                    const Expanded(child: Divider(thickness: 1, color: Colors.white24)),
                   ],
                 ),
 
