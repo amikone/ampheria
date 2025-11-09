@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart';
@@ -132,6 +133,16 @@ class _ConversationPageState extends State<ConversationPage> {
         if (type == 'image' && msg['file_path'] != null) {
           final path = msg['file_path'] as String;
           final url = await _signedUrlFor(path);
+          final w = (msg['width'] as int?)?.toDouble();
+          final h = (msg['height'] as int?)?.toDouble();
+          double? displayW = w, displayH = h;
+          if (w != null && h != null) {
+            const maxW = 260.0;
+            const maxH = 300.0;
+            final scale = min(maxW / w, maxH / h);
+            displayW = w * scale;
+            displayH = h * scale;
+          }
           msgs.add(
             ImageMessage(
               id: msg['id'].toString(),
@@ -139,6 +150,8 @@ class _ConversationPageState extends State<ConversationPage> {
               size: (msg['file_size'] as int?) ?? 0,
               createdAt: createdAt, source: url,
               metadata: {'file_path': path},
+              width: displayW,
+              height: displayH,
             ),
           );
         } else {
@@ -265,6 +278,8 @@ class _ConversationPageState extends State<ConversationPage> {
 
     if (compressedBytes == null) return;
 
+
+
     const maxSize = 2 * 1024 * 1024; // 2 Mo
     if (compressedBytes.length > maxSize) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -272,6 +287,11 @@ class _ConversationPageState extends State<ConversationPage> {
       );
       return;
     }
+
+    final codec = await ui.instantiateImageCodec(compressedBytes);
+    final frame = await codec.getNextFrame();
+    final imgWidth = frame.image.width;
+    final imgHeight = frame.image.height;
 
     // Upload dans le bucket privé
     await supabase.storage.from('chat-pictures').uploadBinary(
@@ -290,7 +310,8 @@ class _ConversationPageState extends State<ConversationPage> {
       'file_path': storagePath,
       'file_mime': mimeType,
       'file_size': bytes.length,
-
+      'width': imgWidth,
+      'height': imgHeight,
     });
   }
 
