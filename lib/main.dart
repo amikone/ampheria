@@ -1,10 +1,10 @@
-import 'package:ampheria/presentation/LoginView.dart';
-import 'package:ampheria/presentation/Page/Chat/ChatPage.dart';
-import 'package:ampheria/presentation/Page/Health/HealthPage.dart';
-import 'package:ampheria/presentation/Page/Like/LikePage.dart';
-import 'package:ampheria/presentation/Page/People/PeoplePage.dart';
-import 'package:ampheria/presentation/Page/Profile/ProfileScreen.dart';
-import 'package:ampheria/presentation/Widgets/BottomNavBar.dart';
+import 'package:ampheria/Presentation/LoginView.dart';
+import 'package:ampheria/Presentation/Page/Chat/ChatPage.dart';
+import 'package:ampheria/Presentation/Page/Health/HealthPage.dart';
+import 'package:ampheria/Presentation/Page/Like/LikePage.dart';
+import 'package:ampheria/Presentation/Page/People/PeoplePage.dart';
+import 'package:ampheria/Presentation/Page/Profile/ProfileScreen.dart';
+import 'package:ampheria/Presentation/Widgets/BottomNavBar.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

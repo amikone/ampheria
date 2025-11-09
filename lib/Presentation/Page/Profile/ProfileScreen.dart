@@ -17,7 +17,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final res = await Supabase.instance.client
         .from('profiles')
-        .select('birth_date')
+        .select('birth_date, phone, full_name, city, phone_verified')
         .eq('id', userId)
         .maybeSingle();
 
@@ -31,7 +31,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
       return false;
     }
-    return res['birth_date'] != null;
+    return (res['full_name'] != null && (res['full_name'] as String).isNotEmpty)
+        && (res['birth_date'] != null)
+        //&& (res['phone'] != null && (res['phone'] as String).isNotEmpty)
+        && (res['city'] != null && (res['city'] as String).isNotEmpty);
+        //&& (res['phone_verified'] == true);
   }
 
   Future<void> _goToSetup() async {
