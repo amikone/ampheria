@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import '../../Widgets/ProfileDetailModal.dart';
 
 class PeoplePage extends StatefulWidget {
   const PeoplePage({super.key});
-
   @override
   State<PeoplePage> createState() => _PeoplePageState();
 }
@@ -13,30 +11,56 @@ class PeoplePage extends StatefulWidget {
 class _PeoplePageState extends State<PeoplePage> {
   final supabase = Supabase.instance.client;
 
-  Map<String, dynamic>? _profile;
+  // Nouveau: buffer de profils
+  List<Map<String, dynamic>> _profiles = [];
+  int _currentIndex = 0;
+
+  // Index de la photo pour le profil courant
   int _currentPhotoIndex = 0;
+
   bool _loading = true;
+  bool _loadingMore = false;
+
+  Map<String, dynamic>? get _currentProfile =>
+      (_currentIndex < _profiles.length) ? _profiles[_currentIndex] : null;
 
   @override
   void initState() {
     super.initState();
-    _loadRandomProfile();
+    _loadProfiles(); // charge 10 par défaut
   }
 
-  Future<void> _loadRandomProfile() async {
-    setState(() {
-      _loading = true;
-      _currentPhotoIndex = 0;
-    });
+  Future<void> _loadProfiles({bool append = false, int limit = 10}) async {
+    if (!append) {
+      setState(() {
+        _loading = true;
+        _currentIndex = 0;
+        _currentPhotoIndex = 0;
+      });
+    } else {
+      if (_loadingMore) return;
+      setState(() => _loadingMore = true);
+    }
 
     try {
-      // The function should return data in the same format as the profile detail modal
-      final response = await supabase.functions.invoke('get-random-users');
+      final response = await supabase.functions.invoke(
+        'get-random-users',
+        body: {'limit': limit},
+      );
+
+      final data = response.data;
+
       if (mounted) {
-        if (response.data != null && response.data is Map<String, dynamic>) {
+        if (data is List) {
+          final incoming = data.cast<Map<String, dynamic>>();
           setState(() {
-            _profile = response.data;
-            _loading = false;
+            if (append) {
+              _profiles.addAll(incoming);
+              _loadingMore = false;
+            } else {
+              _profiles = incoming;
+              _loading = false;
+            }
           });
         } else {
           _handleError("Aucun profil trouvé");
@@ -44,7 +68,7 @@ class _PeoplePageState extends State<PeoplePage> {
       }
     } catch (e) {
       if (mounted) {
-        _handleError("Erreur lors du chargement du profil");
+        _handleError("Erreur lors du chargement des profils");
       }
     }
   }
@@ -54,49 +78,57 @@ class _PeoplePageState extends State<PeoplePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
-    setState(() => _loading = false);
+    setState(() {
+      _loading = false;
+      _loadingMore = false;
+    });
+  }
+
+  // Préchargement quand il reste peu de profils
+  void _ensureBuffer() {
+    const threshold = 3;
+    if (!_loadingMore &&
+        _profiles.length - _currentIndex <= threshold &&
+        !_loading) {
+      _loadProfiles(append: true, limit: 10);
+    }
   }
 
   void _nextPhoto() {
-    if (_profile == null) return;
-    final photos = List<String>.from(_profile!['photos'] ?? []);
+    final profile = _currentProfile;
+    if (profile == null) return;
+    final photos = List<String>.from(profile['photos'] ?? []);
     if (photos.isEmpty) return;
-
     setState(() {
       _currentPhotoIndex = (_currentPhotoIndex + 1) % photos.length;
     });
   }
 
   void _previousPhoto() {
-    if (_profile == null) return;
-    final photos = List<String>.from(_profile!['photos'] ?? []);
+    final profile = _currentProfile;
+    if (profile == null) return;
+    final photos = List<String>.from(profile['photos'] ?? []);
     if (photos.isEmpty) return;
-
     setState(() {
       _currentPhotoIndex = (_currentPhotoIndex - 1 + photos.length) % photos.length;
     });
   }
 
   Future<void> _handleLike() async {
-    if (_profile == null) return;
+    final profile = _currentProfile;
+    if (profile == null) return;
     final user = supabase.auth.currentUser;
     if (user == null) return;
-
     try {
       final response = await supabase.functions.invoke(
         'like-user',
-        body: {'liked_id': _profile!['id']},
+        body: {'liked_id': profile['id']},
       );
       final data = response.data as Map<String, dynamic>?;
-
       if (mounted) {
         if (data != null && data['matched'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("💘 C’est un match avec ${_profile!['username']} !")),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("💖 Tu as liké ${_profile!['username']}")),
+            SnackBar(content: Text("💘 C’est un match avec ${profile['username']} !")),
           );
         }
       }
@@ -105,26 +137,35 @@ class _PeoplePageState extends State<PeoplePage> {
         _handleError("Erreur lors du like");
       }
     }
-
-    _loadRandomProfile();
+    _goToNextProfile();
   }
 
   void _handleDislike() {
-    if (_profile != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Tu as passé ${_profile!['username']}")),
-      );
+    _goToNextProfile();
+  }
+
+  void _goToNextProfile() {
+    setState(() {
+      _currentIndex++;
+      _currentPhotoIndex = 0;
+    });
+
+    // Si plus de profils dans le buffer, relancer un fetch
+    if (_currentProfile == null) {
+      _loadProfiles();
+    } else {
+      _ensureBuffer();
     }
-    _loadRandomProfile();
   }
 
   void _showProfileDetails() {
-    if (_profile != null) {
+    final profile = _currentProfile;
+    if (profile != null) {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (_) => ProfileDetailModal(profileId: _profile!['id']),
+        builder: (_) => ProfileDetailModal(profileId: profile['id']),
       );
     }
   }
@@ -132,7 +173,7 @@ class _PeoplePageState extends State<PeoplePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Darker background
+      backgroundColor: const Color(0xFF121212),
       body: SafeArea(
         child: _buildContent(),
       ),
@@ -143,18 +184,16 @@ class _PeoplePageState extends State<PeoplePage> {
     if (_loading) {
       return const _LoadingView();
     }
-
-    if (_profile == null) {
-      return _NoProfileView(onReload: _loadRandomProfile);
+    if (_currentProfile == null) {
+      return _NoProfileView(onReload: () => _loadProfiles());
     }
-
     return Column(
       children: [
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: _ProfileCard(
-              profile: _profile!,
+              profile: _currentProfile!,
               currentPhotoIndex: _currentPhotoIndex,
               onNextPhoto: _nextPhoto,
               onPreviousPhoto: _previousPhoto,
@@ -174,27 +213,27 @@ class _PeoplePageState extends State<PeoplePage> {
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
-
   @override
   Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator(
-      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-    ));
+    return const Center(
+      child: CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      ),
+    );
   }
 }
 
 class _NoProfileView extends StatelessWidget {
   final VoidCallback onReload;
-
   const _NoProfileView({required this.onReload});
-
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text("Plus de profils pour le moment.", style: TextStyle(color: Colors.white70, fontSize: 16)),
+          const Text("Plus de profils pour le moment.",
+              style: TextStyle(color: Colors.white70, fontSize: 16)),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
@@ -203,7 +242,8 @@ class _NoProfileView extends StatelessWidget {
             ),
             onPressed: onReload,
             icon: const Icon(Icons.refresh, color: Colors.white),
-            label: const Text("Recharger", style: TextStyle(color: Colors.white, fontSize: 16)),
+            label: const Text("Recharger",
+                style: TextStyle(color: Colors.white, fontSize: 16)),
           ),
         ],
       ),
@@ -230,7 +270,6 @@ class _ProfileCard extends StatelessWidget {
     final currentPhoto = photos.isNotEmpty
         ? photos[currentPhotoIndex]
         : "https://via.placeholder.com/400x600?text=No+Photo";
-
     return GestureDetector(
       onTapUp: (details) {
         final width = MediaQuery.of(context).size.width;
@@ -258,7 +297,8 @@ class _ProfileCard extends StatelessWidget {
                   if (progress == null) return child;
                   return const Center(child: CircularProgressIndicator());
                 },
-                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+                errorBuilder: (_, __, ___) =>
+                const Icon(Icons.broken_image, color: Colors.grey),
               ),
             ),
             const Positioned.fill(
@@ -299,12 +339,10 @@ class _ProfileCard extends StatelessWidget {
 class _PhotoProgressIndicator extends StatelessWidget {
   final int photoCount;
   final int currentPhotoIndex;
-
   const _PhotoProgressIndicator({
     required this.photoCount,
     required this.currentPhotoIndex,
   });
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -328,16 +366,15 @@ class _PhotoProgressIndicator extends StatelessWidget {
 
 class _ProfileInfoOverlay extends StatelessWidget {
   final Map<String, dynamic> profile;
-
   const _ProfileInfoOverlay({required this.profile});
-
   @override
   Widget build(BuildContext context) {
-    final age = profile['birth_date'] != null ?
-    (DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor() : '';
-    final displayName = "${profile['full_name'] ?? profile['username']}${age.toString().isNotEmpty ? ', $age' : ''}";
+    final age = profile['birth_date'] != null
+        ? (DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor()
+        : null;
+    final displayName =
+        "${profile['full_name'] ?? profile['username']}${age != null ? ', $age' : ''}";
     final interests = List<Map<String, dynamic>>.from(profile['profile_tags'] ?? []);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -372,7 +409,7 @@ class _ProfileInfoOverlay extends StatelessWidget {
         ),
         if (interests.isNotEmpty) ...[
           const SizedBox(height: 12),
-          _ProfileInterests(interests: interests),
+          _ProfileInterests(interests: interests.take(4).toList()),
         ],
       ],
     );
@@ -381,15 +418,13 @@ class _ProfileInfoOverlay extends StatelessWidget {
 
 class _ProfileInterests extends StatelessWidget {
   final List<Map<String, dynamic>> interests;
-
   const _ProfileInterests({required this.interests});
-
   @override
   Widget build(BuildContext context) {
     return Wrap(
       spacing: 8.0,
       runSpacing: 8.0,
-      children: interests.take(3).map((interest) { // Take first 3 interests for preview
+      children: interests.map((interest) {
         final tagName = interest['tags']?['name'] ?? 'N/A';
         return Chip(
           label: Text(tagName),
@@ -406,13 +441,11 @@ class _ActionToolbar extends StatelessWidget {
   final VoidCallback onLike;
   final VoidCallback onDislike;
   final VoidCallback onShowDetails;
-
   const _ActionToolbar({
     required this.onLike,
     required this.onDislike,
     required this.onShowDetails,
   });
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -420,18 +453,18 @@ class _ActionToolbar extends StatelessWidget {
       children: [
         _buildActionButton(
           icon: Icons.close,
-          color: const Color(0xFFE57373), // Softer Red
+          color: const Color(0xFFE57373),
           onPressed: onDislike,
         ),
         _buildActionButton(
-            icon: Icons.info_outline,
-            color: const Color(0xFF64B5F6), // Softer Blue
-            onPressed: onShowDetails,
-            isSmall: true
+          icon: Icons.info_outline,
+          color: const Color(0xFF64B5F6),
+          onPressed: onShowDetails,
+          isSmall: true,
         ),
         _buildActionButton(
           icon: Icons.favorite,
-          color: const Color(0xFF81C784), // Softer Green
+          color: const Color(0xFF81C784),
           onPressed: onLike,
         ),
       ],

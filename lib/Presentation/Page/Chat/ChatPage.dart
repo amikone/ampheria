@@ -69,6 +69,37 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
+  Future<void> _deleteMatch(int matchId, int index) async {
+    // 1. Supprime l'élément de l'UI de manière optimiste
+    final removedItem = _conversations.removeAt(index);
+    setState(() {});
+
+    try {
+      // 2. Supprime directement le match de la base de données
+      await supabase.from('matches').delete().eq('id', matchId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Match supprimé avec succès.")),
+        );
+      }
+    } catch (e) {
+      // 3. En cas d'erreur, annule la suppression et affiche un message
+      debugPrint("Erreur lors de la suppression du match: $e");
+      setState(() {
+        _conversations.insert(index, removedItem);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Impossible de supprimer le match. Veuillez réessayer."),
+              backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -92,14 +123,29 @@ class _ChatPageState extends State<ChatPage> {
           final conv = _conversations[index];
           final user = conv['user'];
           final photo = (user['photos'] as List?)?.first ?? '';
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null,
-              child: photo.isEmpty ? const Icon(Icons.person) : null,
+          final matchId = conv['match_id'];
+
+          return Dismissible(
+            key: ValueKey(matchId),
+            direction: DismissDirection.endToStart,
+            onDismissed: (direction) {
+              _deleteMatch(matchId, index);
+            },
+            background: Container(
+              color: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              alignment: Alignment.centerRight,
+              child: const Icon(Icons.delete, color: Colors.white),
             ),
-            title: Text(user['full_name'] ?? user['username']),
-            subtitle: Text(user['bio'] ?? ''),
-            onTap: () => _openChat(conv),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null,
+                child: photo.isEmpty ? const Icon(Icons.person) : null,
+              ),
+              title: Text(user['full_name'] ?? user['username']),
+              subtitle: Text(user['bio'] ?? ''),
+              onTap: () => _openChat(conv),
+            ),
           );
         },
       ),

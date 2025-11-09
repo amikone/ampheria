@@ -423,6 +423,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   TextFormField(
                     initialValue: _bio,
                     maxLines: 3,
+                    maxLength: 250,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
