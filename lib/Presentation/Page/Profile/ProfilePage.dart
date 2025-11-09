@@ -103,6 +103,14 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
+    if (_photos.length >= 8) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vous ne pouvez pas avoir plus de 8 photos.")),
+      );
+      return;
+    }
+
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;

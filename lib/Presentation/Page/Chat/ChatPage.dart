@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -33,14 +34,28 @@ class _ChatPageState extends State<ChatPage> {
     _loadConversations();
   }
 
+
   Future<void> _loadConversations() async {
     final response = await supabase.functions.invoke('get-conversations');
-    if (response.data != null && response.data is List) {
-      setState(() {
-        _conversations = List<Map<String, dynamic>>.from(response.data);
-        _loading = false;
-      });
+
+    if (response.data != null) {
+      // response.data peut être String si la fonction renvoie du text/plain
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
+
+      if (data is List) {
+        setState(() {
+          _conversations = List<Map<String, dynamic>>.from(data);
+          _loading = false;
+        });
+        return;
+      }
     }
+
+    // fallback si pas de données
+    setState(() {
+      _conversations = [];
+      _loading = false;
+    });
   }
 
   void _openChat(Map<String, dynamic> conversation) {
@@ -56,11 +71,22 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text("Mes chats")),
-      body: ListView.builder(
+      body: _conversations.isEmpty
+          ? const Center(
+        child: Text(
+          "Vous n'avez aucune conversation pour le moment",
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      )
+          : ListView.builder(
         itemCount: _conversations.length,
         itemBuilder: (context, index) {
           final conv = _conversations[index];
@@ -79,6 +105,7 @@ class _ChatPageState extends State<ChatPage> {
       ),
     );
   }
+
 }
 
 
