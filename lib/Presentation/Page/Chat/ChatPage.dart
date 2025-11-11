@@ -41,7 +41,6 @@ class _ChatPageState extends State<ChatPage> {
     final response = await supabase.functions.invoke('get-conversations');
 
     if (response.data != null) {
-      // response.data peut être String si la fonction renvoie du text/plain
       final data = response.data is String ? jsonDecode(response.data) : response.data;
 
       if (data is List) {
@@ -53,7 +52,6 @@ class _ChatPageState extends State<ChatPage> {
       }
     }
 
-    // fallback si pas de données
     setState(() {
       _conversations = [];
       _loading = false;
@@ -72,12 +70,10 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _deleteMatch(int matchId, int index) async {
-    // 1. Supprime l'élément de l'UI de manière optimiste
     final removedItem = _conversations.removeAt(index);
     setState(() {});
 
     try {
-      // 2. Supprime directement le match de la base de données
       await supabase.from('matches').delete().eq('id', matchId);
 
       if (mounted) {
@@ -86,8 +82,6 @@ class _ChatPageState extends State<ChatPage> {
         );
       }
     } catch (e) {
-      // 3. En cas d'erreur, annule la suppression et affiche un message
-      debugPrint("Erreur lors de la suppression du match: $e");
       setState(() {
         _conversations.insert(index, removedItem);
       });
@@ -115,8 +109,8 @@ class _ChatPageState extends State<ChatPage> {
       body: _conversations.isEmpty
           ? const Center(
         child: Text(
-          "Vous n'avez aucune conversation pour le moment",
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+          "Tu n'a aucune conversation pour le moment",
+          style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
       )
           : ListView.builder(
@@ -368,7 +362,6 @@ class _ConversationPageState extends State<ConversationPage> {
     final imgWidth = frame.image.width;
     final imgHeight = frame.image.height;
 
-    // Upload dans le bucket privé
     await supabase.storage.from('chat-pictures').uploadBinary(
       storagePath,
       compressedBytes,
@@ -376,8 +369,6 @@ class _ConversationPageState extends State<ConversationPage> {
     );
 
 
-
-    // Enregistre le message image dans la base
     await supabase.from('messages').insert({
       'match_id': widget.matchId,
       'sender_id': _currentUserId,
@@ -443,7 +434,8 @@ class _ConversationPageState extends State<ConversationPage> {
     }
     return Scaffold(
       appBar: appBar,
-      body: Chat(
+      body: Chat(    // Enregistre le message image dans la base
+
         chatController: _chatController,
         currentUserId: _currentUserId,
         onMessageSend: _handleSendPressed,
@@ -472,7 +464,6 @@ class _ConversationPageState extends State<ConversationPage> {
               child: FlyerChatImageMessage(
                 message: message,
                 index: index,
-                // Les autres params si besoin,
               ),
             );
           },

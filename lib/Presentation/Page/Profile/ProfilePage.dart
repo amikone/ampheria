@@ -16,18 +16,15 @@ class _ProfilePageState extends State<ProfilePage> {
   final supabase = Supabase.instance.client;
   Timer? _debounce;
 
-  // Profile data
   String _bio = '';
   String _name = '';
   List<String> _photos = [];
 
-  // Preferences data
   List<String> _interestedIn = [];
   double _minAge = 18;
   double _maxAge = 35;
   double _maxDistance = 50;
 
-  // Tags data
   List<String> _tags = [];
   final _tagController = TextEditingController();
 
@@ -43,7 +40,6 @@ class _ProfilePageState extends State<ProfilePage> {
   void dispose() {
     _debounce?.cancel();
     _tagController.dispose();
-    // Final save on leaving the page
     _saveProfile();
     _savePreferences();
     super.dispose();
@@ -60,7 +56,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // --- Profile Section ---
   Future<void> _loadProfile() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
@@ -81,7 +76,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _saveProfile() async {
-    // Ne pas sauvegarder si les données initiales ne sont pas encore chargées.
     if (_loading) return;
     
     final user = supabase.auth.currentUser;
@@ -101,7 +95,6 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  // --- Photos Section ---
   Future<void> _pickAndUploadPhoto() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
@@ -145,7 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
       final imageUrl = data['url'];
 
       setState(() => _photos.add(imageUrl));
-      await _saveProfile(); // Immediate save
+      await _saveProfile();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -171,7 +164,7 @@ class _ProfilePageState extends State<ProfilePage> {
       await supabase.storage.from('profiles-picture').remove([path]);
 
       setState(() => _photos.remove(url));
-      await _saveProfile(); // Immediate save
+      await _saveProfile();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -188,7 +181,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // --- Tags Section ---
   Future<void> _loadUserTags() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
@@ -249,7 +241,6 @@ class _ProfilePageState extends State<ProfilePage> {
       });
     } catch(e) {
        debugPrint("Erreur ajout tag: $e");
-       // Optionally remove tag from UI if save fails
        setState(() => _tags.remove(tagName));
     }
   }
@@ -277,13 +268,11 @@ class _ProfilePageState extends State<ProfilePage> {
           .eq('tag_id', tagId);
     } catch(e) {
       debugPrint("Erreur suppression tag: $e");
-      // Restore tag in UI if save fails
       setState(() => _tags = originalTags);
     }
   }
 
 
-  // --- Preferences Section ---
   Future<void> _loadPreferences() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
@@ -377,7 +366,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     },
                     onSelected: (String selection) => _addTag(selection),
                     fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                       // This is a workaround because the default controller is not the one we have access to.
                       _tagController.addListener(() {
                         controller.text = _tagController.text;
                         controller.selection = _tagController.selection;

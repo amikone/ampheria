@@ -40,7 +40,7 @@ class _LikePageState extends State<LikePage> {
           .cast<Map<String, dynamic>>()
           .toList();
 
-      return profiles; // <= important
+      return profiles;
 
     } catch (e) {
       debugPrint('Erreur fetch likes: $e');

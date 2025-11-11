@@ -11,15 +11,13 @@ class PeoplePage extends StatefulWidget {
 class _PeoplePageState extends State<PeoplePage> {
   final supabase = Supabase.instance.client;
 
-  // Nouveau: buffer de profils
   List<Map<String, dynamic>> _profiles = [];
   int _currentIndex = 0;
-
-  // Index de la photo pour le profil courant
   int _currentPhotoIndex = 0;
 
   bool _loading = true;
   bool _loadingMore = false;
+  bool _isVerified = false; // Pour suivre le statut de vérification
 
   Map<String, dynamic>? get _currentProfile =>
       (_currentIndex < _profiles.length) ? _profiles[_currentIndex] : null;
@@ -27,7 +25,42 @@ class _PeoplePageState extends State<PeoplePage> {
   @override
   void initState() {
     super.initState();
-    _loadProfiles(); // charge 10 par défaut
+    _initializePage();
+  }
+
+  Future<void> _initializePage() async {
+    // 1. Vérifier si le profil de l'utilisateur actuel est vérifié
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) {
+      setState(() => _loading = false);
+      return;
+    }
+
+    try {
+      final profile = await supabase
+          .from('profiles')
+          .select('verified')
+          .eq('id', userId)
+          .single() as Map<String, dynamic>?;
+
+      if (mounted) {
+        final isVerified = profile?['verified'] ?? false;
+        setState(() {
+          _isVerified = isVerified;
+        });
+
+        if (isVerified) {
+          _loadProfiles();
+        } else {
+          setState(() => _loading = false);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _handleError("Erreur lors de la vérification du profil");
+        setState(() => _loading = false);
+      }
+    }
   }
 
   Future<void> _loadProfiles({bool append = false, int limit = 10}) async {
@@ -47,9 +80,7 @@ class _PeoplePageState extends State<PeoplePage> {
         'get-random-users',
         body: {'limit': limit},
       );
-
       final data = response.data;
-
       if (mounted) {
         if (data is List) {
           final incoming = data.cast<Map<String, dynamic>>();
@@ -59,16 +90,20 @@ class _PeoplePageState extends State<PeoplePage> {
               _loadingMore = false;
             } else {
               _profiles = incoming;
-              _loading = false;
             }
+            _loading = false;
           });
         } else {
           _handleError("Aucun profil trouvé");
+          setState(() => _loading = false);
         }
       }
     } catch (e) {
       if (mounted) {
-        _handleError("Erreur lors du chargement des profils");
+        setState(() {
+          _loading = false;
+          _loadingMore = false;
+        });
       }
     }
   }
@@ -84,7 +119,6 @@ class _PeoplePageState extends State<PeoplePage> {
     });
   }
 
-  // Préchargement quand il reste peu de profils
   void _ensureBuffer() {
     const threshold = 3;
     if (!_loadingMore &&
@@ -110,28 +144,19 @@ class _PeoplePageState extends State<PeoplePage> {
     final photos = List<String>.from(profile['photos'] ?? []);
     if (photos.isEmpty) return;
     setState(() {
-      _currentPhotoIndex = (_currentPhotoIndex - 1 + photos.length) % photos.length;
+      _currentPhotoIndex =
+          (_currentPhotoIndex - 1 + photos.length) % photos.length;
     });
   }
 
   Future<void> _handleLike() async {
     final profile = _currentProfile;
     if (profile == null) return;
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
     try {
-      final response = await supabase.functions.invoke(
+      await supabase.functions.invoke(
         'like-user',
         body: {'liked_id': profile['id']},
       );
-      final data = response.data as Map<String, dynamic>?;
-      if (mounted) {
-        if (data != null && data['matched'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("💘 C’est un match avec ${profile['username']} !")),
-          );
-        }
-      }
     } catch (e) {
       if (mounted) {
         _handleError("Erreur lors du like");
@@ -149,13 +174,7 @@ class _PeoplePageState extends State<PeoplePage> {
       _currentIndex++;
       _currentPhotoIndex = 0;
     });
-
-    // Si plus de profils dans le buffer, relancer un fetch
-    if (_currentProfile == null) {
-      _loadProfiles();
-    } else {
-      _ensureBuffer();
-    }
+    _ensureBuffer();
   }
 
   void _showProfileDetails() {
@@ -184,8 +203,12 @@ class _PeoplePageState extends State<PeoplePage> {
     if (_loading) {
       return const _LoadingView();
     }
+    // Si l'utilisateur n'est pas vérifié, afficher le message d'attente
+    if (!_isVerified) {
+      return const _VerificationPendingView();
+    }
     if (_currentProfile == null) {
-      return _NoProfileView(onReload: () => _loadProfiles());
+      return _NoProfileView(onReload: _initializePage);
     }
     return Column(
       children: [
@@ -207,6 +230,41 @@ class _PeoplePageState extends State<PeoplePage> {
         ),
         const SizedBox(height: 20),
       ],
+    );
+  }
+}
+
+// NOUVEAU WIDGET
+class _VerificationPendingView extends StatelessWidget {
+  const _VerificationPendingView();
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.shield_moon_outlined,
+                size: 60, color: Colors.deepPurpleAccent),
+            const SizedBox(height: 24),
+            const Text(
+              "Vérification en cours",
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Ton compte n’a pas encore été validé. Nous vérifions les comptes au plus vite afin d’éviter les bots. Cela devrait prendre environ 24 heures. N’hésite pas à bien compléter ton profil pour accélérer le processus.",
+              style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.7)),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -238,7 +296,8 @@ class _NoProfileView extends StatelessWidget {
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.deepPurpleAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             onPressed: onReload,
             icon: const Icon(Icons.refresh, color: Colors.white),
@@ -298,14 +357,18 @@ class _ProfileCard extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 },
                 errorBuilder: (_, __, ___) =>
-                const Icon(Icons.broken_image, color: Colors.grey),
+                    const Icon(Icons.broken_image, color: Colors.grey),
               ),
             ),
             const Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.transparent, Colors.black54, Colors.black87],
+                    colors: [
+                      Colors.transparent,
+                      Colors.black54,
+                      Colors.black87
+                    ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     stops: [0.5, 0.75, 1.0],
@@ -370,11 +433,16 @@ class _ProfileInfoOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final age = profile['birth_date'] != null
-        ? (DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor()
+        ? (DateTime.now()
+                    .difference(DateTime.parse(profile['birth_date']))
+                    .inDays /
+                365)
+            .floor()
         : null;
     final displayName =
         "${profile['full_name'] ?? profile['username']}${age != null ? ', $age' : ''}";
-    final interests = List<Map<String, dynamic>>.from(profile['profile_tags'] ?? []);
+    final interests =
+        List<Map<String, dynamic>>.from(profile['profile_tags'] ?? []);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,

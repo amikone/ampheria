@@ -31,7 +31,6 @@ class _HealthPageState extends State<HealthPage> {
         .map((e) => DonationCardModel.fromMap(e as Map<String, dynamic>))
         .toList();
 
-    // Utiliser la table donations_stats pour le montant actuel si voulue
     double? collecteActuelle;
     try {
       final stat = await supabase

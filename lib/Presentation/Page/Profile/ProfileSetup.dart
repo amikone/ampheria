@@ -19,8 +19,52 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   bool _loading = false;
   bool _otpSent = false;
   bool _phoneVerified = false;
+  bool _canSubmit = false;
 
   final supabase = Supabase.instance.client;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = supabase.auth.currentUser;
+    if (user != null && user.phone != null && user.phoneConfirmedAt != null) {
+      _phoneController.text = user.phone!;
+      _phoneVerified = true;
+    }
+
+    _fullNameController.addListener(_updateSubmitButtonState);
+    _birthDateController.addListener(_updateSubmitButtonState);
+    _cityController.addListener(_updateSubmitButtonState);
+    _phoneController.addListener(_updateSubmitButtonState);
+
+    _updateSubmitButtonState();
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.removeListener(_updateSubmitButtonState);
+    _birthDateController.removeListener(_updateSubmitButtonState);
+    _cityController.removeListener(_updateSubmitButtonState);
+    _phoneController.removeListener(_updateSubmitButtonState);
+
+    _fullNameController.dispose();
+    _birthDateController.dispose();
+    _cityController.dispose();
+    _phoneController.dispose();
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  void _updateSubmitButtonState() {
+    final allFieldsFilled = _fullNameController.text.isNotEmpty &&
+        _birthDateController.text.isNotEmpty &&
+        _selectedGender != null &&
+        _cityController.text.isNotEmpty ;
+        //&& _phoneController.text.isNotEmpty;
+    setState(() {
+      _canSubmit = allFieldsFilled ;//&& _phoneVerified;
+    });
+  }
 
   Future<void> _sendOtp() async {
     final phone = _phoneController.text.trim();
@@ -49,29 +93,37 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     if (token.isEmpty) return;
 
     try {
-      await supabase.auth.verifyOTP(
+      final response = await supabase.auth.verifyOTP(
         type: OtpType.sms,
         token: token,
         phone: phone,
       );
-      setState(() => _phoneVerified = true);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Numéro vérifié ✅')));
+
+      if (response.session != null) {
+        setState(() {
+          _phoneVerified = true;
+        });
+        _updateSubmitButtonState();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Numéro vérifié ✅')));
+      } else {
+        throw Exception('La vérification OTP a échoué.');
+      }
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Code incorrect ❌')));
+          .showSnackBar(SnackBar(content: Text('Code incorrect ❌: $e')));
     }
   }
 
   Future<void> _submit() async {
     if (_formKey.currentState?.validate() != true) return;
 
-    if (!_phoneVerified) {
+    /*if (!_phoneVerified) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez vérifier votre numéro avant de continuer.')),
       );
       return;
-    }
+    }*/
 
     setState(() => _loading = true);
 
@@ -81,7 +133,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       'birth_date': _birthDateController.text,
       'gender': _selectedGender,
       'city': _cityController.text,
-      'phone': _phoneController.text.trim(),
     }).eq('id', userId!);
 
     setState(() => _loading = false);
@@ -134,15 +185,19 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   DropdownMenuItem(value: 'other', child: Text('Autre')),
                 ],
                 decoration: const InputDecoration(labelText: 'Genre'),
-                onChanged: (v) => setState(() => _selectedGender = v),
+                onChanged: (v) {
+                  setState(() => _selectedGender = v);
+                  _updateSubmitButtonState();
+                },
                 validator: (v) => (v == null) ? 'Genre requis' : null,
               ),
-              TextFormField(
+               TextFormField(
                 controller: _cityController,
                 decoration: const InputDecoration(labelText: 'Ville'),
                 validator: (v) =>
                 (v == null || v.isEmpty) ? 'La ville est requise' : null,
               ),
+              /*
               const SizedBox(height: 16),
               TextFormField(
                 controller: _phoneController,
@@ -151,6 +206,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                     labelText: 'Numéro de téléphone (ex: +336...)'),
                 validator: (v) =>
                 (v == null || v.isEmpty) ? 'Le téléphone est requis' : null,
+                readOnly: _phoneVerified,
               ),
               if (!_phoneVerified)
                 Row(
@@ -175,10 +231,10 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                         icon: const Icon(Icons.check),
                       ),
                   ],
-                ),
+                ),*/
               const Spacer(),
               ElevatedButton(
-                onPressed: _loading ? null : _submit,
+                onPressed: (_canSubmit && !_loading) ? _submit : null,
                 child: _loading
                     ? const CircularProgressIndicator()
                     : const Text('Valider'),
