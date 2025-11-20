@@ -279,6 +279,19 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
   }
 }
 
+String _getDisplayGender(String? gender) {
+  switch (gender) {
+    case 'male':
+      return 'Homme';
+    case 'female':
+      return 'Femme';
+    case 'other':
+      return 'Autre';
+    default:
+      return 'Non précisé';
+  }
+}
+
 class _ProfileDetails extends StatelessWidget {
   final Map<String, dynamic> profile;
 
@@ -286,7 +299,7 @@ class _ProfileDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gender = profile['gender'] ?? 'Non précisé';
+    final gender = _getDisplayGender(profile['gender'] as String?);
     final city = profile['city'] ?? 'Non précisée';
     final birthDate = profile['birth_date'] != null
         ? '${(DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor()} ans'

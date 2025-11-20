@@ -197,14 +197,20 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<List<String>> _searchTags(String query) async {
+  Future<List<Map<String, dynamic>>> _searchTags(String query) async {
     if (query.isEmpty) return [];
     final response = await supabase
         .from('tags')
-        .select('name')
+        .select('name, profile_tags(count)')
         .ilike('name', '%$query%')
         .limit(10);
-    return List<String>.from(response.map((e) => e['name']));
+    
+    return response.map((tagData) {
+      final name = tagData['name'] as String;
+      final profiles = tagData['profile_tags'] as List;
+      final count = profiles.isNotEmpty ? (profiles[0] as Map)['count'] as int : 0;
+      return {'name': name, 'count': count};
+    }).toList();
   }
 
   Future<void> _addTag(String tagName) async {
@@ -357,14 +363,43 @@ class _ProfilePageState extends State<ProfilePage> {
                         color: Colors.deepPurple),
                   ),
                   const SizedBox(height: 8),
-                  Autocomplete<String>(
+                  Autocomplete<Map<String, dynamic>>(
+                    displayStringForOption: (option) => option['name'] as String,
                     optionsBuilder: (TextEditingValue textEditingValue) {
                       if (textEditingValue.text.isEmpty) {
-                        return const Iterable<String>.empty();
+                        return const Iterable<Map<String, dynamic>>.empty();
                       }
                       return _searchTags(textEditingValue.text);
                     },
-                    onSelected: (String selection) => _addTag(selection),
+                    onSelected: (selection) => _addTag(selection['name'] as String),
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4.0,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 200),
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              itemCount: options.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final option = options.elementAt(index);
+                                final name = option['name'] as String;
+                                final count = option['count'] as int;
+                                return InkWell(
+                                  onTap: () => onSelected(option),
+                                  child: ListTile(
+                                    title: Text(name),
+                                    trailing: Text("$count personne(s)"),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                     fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
                       _tagController.addListener(() {
                         controller.text = _tagController.text;
