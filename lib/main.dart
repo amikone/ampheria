@@ -6,17 +6,59 @@ import 'package:ampheria/Presentation/Page/People/PeoplePage.dart';
 import 'package:ampheria/Presentation/Page/Profile/ProfileScreen.dart';
 import 'package:ampheria/Presentation/Widgets/BottomNavBar.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://alqqntyixsnbbfpxkmpp.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFscXFudHlpeHNuYmJmcHhrbXBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA1MTM5MTIsImV4cCI6MjA3NjA4OTkxMn0.MlXSHlYvV3rFr_dSyLQaCkTdgnaRh-BnuzPH8-3eXWs',
+    url: 'https://amikone.endide.com',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY0NzE2NDAwLCJleHAiOjE5MjI0ODI4MDB9.feIlUK_yvMG3IsfIVWkdeo7f0NHHNqWOacuAhU4rBUU',
   );
-
   runApp(const MyApp());
+}
+
+
+Future<void> updateUserLocation() async {
+  bool serviceEnabled;
+  LocationPermission permission;
+
+  serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    return Future.error('Location services are disabled.');
+  }
+
+  permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) {
+      return Future.error('Location permissions are denied');
+    }
+  }
+
+  if (permission == LocationPermission.deniedForever) {
+    return Future.error('Location permissions are permanently denied.');
+  }
+
+  try {
+    final Position position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.low,
+      ),
+    );
+
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+
+    if (userId != null) {
+      await supabase.from('profiles').update({
+        'location': 'POINT(${position.longitude} ${position.latitude})'
+      }).eq('id', userId);
+    }
+  } catch (e) {
+    print("Erreur lors de la récupération/mise à jour de la position: $e");
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -72,7 +114,9 @@ class _AuthStateHandlerState extends State<AuthStateHandler> {
     _session = supabase.auth.currentSession;
 
     supabase.auth.onAuthStateChange.listen((data) {
-      setState(() => _session = data.session);
+      if (mounted) {
+        setState(() => _session = data.session);
+      }
     });
   }
 
@@ -104,6 +148,12 @@ class _MainPageState extends State<MainPage> {
     HealthPage(),
 
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    updateUserLocation();
+  }
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);

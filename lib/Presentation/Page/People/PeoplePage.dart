@@ -17,7 +17,7 @@ class _PeoplePageState extends State<PeoplePage> {
 
   bool _loading = true;
   bool _loadingMore = false;
-  bool _isVerified = false; // Pour suivre le statut de vérification
+  bool _isVerified = false;
 
   Map<String, dynamic>? get _currentProfile =>
       (_currentIndex < _profiles.length) ? _profiles[_currentIndex] : null;
@@ -29,7 +29,6 @@ class _PeoplePageState extends State<PeoplePage> {
   }
 
   Future<void> _initializePage() async {
-    // 1. Vérifier si le profil de l'utilisateur actuel est vérifié
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
       setState(() => _loading = false);
@@ -76,14 +75,17 @@ class _PeoplePageState extends State<PeoplePage> {
     }
 
     try {
-      final response = await supabase.functions.invoke(
-        'get-random-users',
-        body: {'limit': limit},
-      );
-      final data = response.data;
+      // Appel RPC get_next_profiles
+      final response = await supabase.rpc("get_next_profiles", params: {
+        'p_limit': limit,
+      });
+
+      final data = response as List<dynamic>?;
+
       if (mounted) {
-        if (data is List) {
-          final incoming = data.cast<Map<String, dynamic>>();
+        if (data != null && data.isNotEmpty) {
+          final incoming =
+          data.map((e) => Map<String, dynamic>.from(e)).toList();
           setState(() {
             if (append) {
               _profiles.addAll(incoming);
@@ -104,6 +106,7 @@ class _PeoplePageState extends State<PeoplePage> {
           _loading = false;
           _loadingMore = false;
         });
+        _handleError("Erreur lors du chargement des profils");
       }
     }
   }
@@ -200,13 +203,8 @@ class _PeoplePageState extends State<PeoplePage> {
   }
 
   Widget _buildContent() {
-    if (_loading) {
-      return const _LoadingView();
-    }
-    // Si l'utilisateur n'est pas vérifié, afficher le message d'attente
-    if (!_isVerified) {
-      return const _VerificationPendingView();
-    }
+    if (_loading) return const _LoadingView();
+    if (!_isVerified) return const _VerificationPendingView();
     if (_currentProfile == null) {
       return _NoProfileView(onReload: _initializePage);
     }

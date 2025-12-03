@@ -539,8 +539,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     spacing: 8,
                     children: ['male', 'female', 'other'].map((gender) {
                       final isSelected = _interestedIn.contains(gender);
+                      String displayText;
+                      if (gender == 'male') {
+                        displayText = 'Homme';
+                      } else if (gender == 'female') {
+                        displayText = 'Femme';
+                      } else {
+                        displayText = 'Autre';
+                      }
                       return FilterChip(
-                        label: Text(gender),
+                        label: Text(displayText),
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() {
