@@ -6,7 +6,7 @@ class ProfileModel {
   final String? bio;
   final DateTime? birthDate;
   final List<String> photos;
-  final String? location; // TODO : Make this get when user connect
+  final String? location;
   final String? city;
 
   ProfileModel({
