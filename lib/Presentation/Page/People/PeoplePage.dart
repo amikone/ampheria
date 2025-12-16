@@ -75,7 +75,6 @@ class _PeoplePageState extends State<PeoplePage> {
     }
 
     try {
-      // Appel RPC get_next_profiles
       final response = await supabase.rpc("get_next_profiles", params: {
         'p_limit': limit,
       });
