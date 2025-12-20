@@ -56,7 +56,7 @@ class _PeoplePageState extends State<PeoplePage> {
       }
     } catch (e) {
       if (mounted) {
-        _handleError("Erreur lors de la vérification du profil");
+        //_handleError("Erreur lors de la vérification du profil");
         setState(() => _loading = false);
       }
     }
@@ -95,7 +95,7 @@ class _PeoplePageState extends State<PeoplePage> {
             _loading = false;
           });
         } else {
-          _handleError("Aucun profil trouvé");
+          //_handleError("Aucun profil trouvé");
           setState(() => _loading = false);
         }
       }
@@ -105,7 +105,7 @@ class _PeoplePageState extends State<PeoplePage> {
           _loading = false;
           _loadingMore = false;
         });
-        _handleError("Erreur lors du chargement des profils");
+        //_handleError("Erreur lors du chargement des profils");
       }
     }
   }
@@ -161,7 +161,7 @@ class _PeoplePageState extends State<PeoplePage> {
       );
     } catch (e) {
       if (mounted) {
-        _handleError("Erreur lors du like");
+        //_handleError("Erreur lors du like");
       }
     }
     _goToNextProfile();
@@ -490,7 +490,7 @@ class _ProfileInterests extends StatelessWidget {
       spacing: 8.0,
       runSpacing: 8.0,
       children: interests.map((interest) {
-        final tagName = interest['tags']?['name'] ?? 'N/A';
+        final tagName = interest['name'] ?? 'N/A';
         return Chip(
           label: Text(tagName),
           backgroundColor: const Color(0xFF2C2C3E).withOpacity(0.8),

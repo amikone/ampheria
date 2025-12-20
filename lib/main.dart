@@ -88,7 +88,6 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: const AuthStateHandler(),
-      // Ajout de la table de routage pour gérer la navigation nommée
       routes: {
         '/home': (context) => const MainPage(),
         '/login': (context) => const LoginPage(),

@@ -66,6 +66,7 @@ class LoginPage extends StatelessWidget {
                     onSignUpComplete: (response) {
                       debugPrint('🆕 Compte créé : ${response.user?.email}');
                     },
+
                     metadataFields: const [],
                   ),
                 ),
@@ -89,6 +90,7 @@ class LoginPage extends StatelessWidget {
                   socialProviders: const [OAuthProvider.google],
                   colored: true,
                   redirectUrl: kIsWeb ? null : 'io.supabase.flutter://callback',
+                  showSuccessSnackBar: false,
                   onSuccess: (session) {
                     debugPrint('✅ Connexion Google réussie : ${session.user.email}');
                     Navigator.pushReplacementNamed(context, '/home');
