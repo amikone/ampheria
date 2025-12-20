@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase_auth_ui/supabase_auth_ui.dart';
 
+import '../main.dart';
+
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
@@ -60,7 +62,8 @@ class LoginPage extends StatelessWidget {
                   child: SupaEmailAuth(
                     redirectTo: kIsWeb ? null : 'io.supabase.flutter://callback',
                     onSignInComplete: (response) {
-                      debugPrint('✅ Connexion réussie : ${response.user?.email}');
+                      updateUserLocation();
+                      updateUserActivity();
                       Navigator.pushReplacementNamed(context, '/home');
                     },
                     onSignUpComplete: (response) {
@@ -92,7 +95,8 @@ class LoginPage extends StatelessWidget {
                   redirectUrl: kIsWeb ? null : 'io.supabase.flutter://callback',
                   showSuccessSnackBar: false,
                   onSuccess: (session) {
-                    debugPrint('✅ Connexion Google réussie : ${session.user.email}');
+                    updateUserLocation();
+                    updateUserActivity();
                     Navigator.pushReplacementNamed(context, '/home');
                   },
                   onError: (error) {

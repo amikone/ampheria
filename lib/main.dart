@@ -59,6 +59,23 @@ Future<void> updateUserLocation() async {
   } catch (e) {
     print("Erreur lors de la récupération/mise à jour de la position: $e");
   }
+
+}
+
+
+Future<void> updateUserActivity() async {
+  final supabase = Supabase.instance.client;
+  final userId = supabase.auth.currentUser?.id;
+
+  if (userId == null) return;
+
+  try {
+    await supabase.from('profiles').update({
+      'last_active_at': DateTime.now().toUtc(),
+    }).eq('id', userId);
+  } catch (e) {
+    print("Erreur lors de la mise à jour de last_active_at: $e");
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -152,6 +169,7 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     updateUserLocation();
+    updateUserActivity();
   }
 
   void _onItemTapped(int index) {
