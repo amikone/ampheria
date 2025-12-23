@@ -25,13 +25,11 @@ class _ProfileDetailModalState extends State<ProfileDetailModal> {
   Future<Map<String, dynamic>?> _fetchProfile() async {
     try {
       final response = await supabase
-          .from('profiles')
-          .select('*, profile_tags(tags(name))')
-          .eq('id', widget.profileId)
+          .rpc('get_profile_by_id', params: {'target_id': widget.profileId})
           .maybeSingle();
       return response;
     } catch (e) {
-      debugPrint('Error fetching profile: $e');
+      debugPrint('Error: $e');
       return null;
     }
   }

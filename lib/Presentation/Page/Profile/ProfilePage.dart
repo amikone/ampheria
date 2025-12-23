@@ -199,55 +199,62 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<List<Map<String, dynamic>>> _searchTags(String query) async {
     if (query.isEmpty) return [];
+
     final response = await supabase
         .from('tags')
-        .select('name, profile_tags(count)')
+        .select('name, usage_count')
         .ilike('name', '%$query%')
+        .order('usage_count', ascending: false)
         .limit(10);
-    
-    return response.map((tagData) {
-      final name = tagData['name'] as String;
-      final profiles = tagData['profile_tags'] as List;
-      final count = profiles.isNotEmpty ? (profiles[0] as Map)['count'] as int : 0;
-      return {'name': name, 'count': count};
-    }).toList();
+
+    return List<Map<String, dynamic>>.from(response.map((tag) => {
+      'name': tag['name'],
+      'count': tag['usage_count'] ?? 0,
+    }));
   }
 
   Future<void> _addTag(String tagName) async {
-    if (tagName.isEmpty || _tags.contains(tagName)) return;
-    
     final user = supabase.auth.currentUser;
     if (user == null) return;
-    
-    setState(() => _tags.add(tagName));
-    _tagController.clear();
+
+    // 1. Normalisation : on enlève les espaces et on met en minuscule
+    // pour éviter les doublons (ex: "Foot" et "foot")
+    final cleanName = tagName.trim().toLowerCase();
+
+    if (cleanName.isEmpty || _tags.contains(cleanName)) return;
+
+    // UI Optimiste : on affiche le tag tout de suite pour la fluidité
+    setState(() {
+      _tags.add(cleanName);
+      _tagController.clear();
+    });
 
     try {
-      final tagResponse = await supabase
+      // 2. Étape Clé : On insère le tag, s'il existe déjà, Supabase renvoie l'existant.
+      // Grâce à 'onConflict: name', on évite les erreurs de doublons.
+      final tagData = await supabase
           .from('tags')
+          .upsert({'name': cleanName}, onConflict: 'name')
           .select('id')
-          .eq('name', tagName)
-          .maybeSingle();
+          .single();
 
-      int tagId;
-      if (tagResponse != null) {
-        tagId = tagResponse['id'];
-      } else {
-        final newTag = await supabase
-            .from('tags')
-            .insert({'name': tagName})
-            .select('id')
-            .single();
-        tagId = newTag['id'];
-      }
+      final int tagId = tagData['id'];
 
+      // 3. Liaison avec le profil
       await supabase.from('profile_tags').upsert({
         'profile_id': user.id,
         'tag_id': tagId,
       });
-    } catch(e) {
-       debugPrint("Erreur ajout tag: $e");
-       setState(() => _tags.remove(tagName));
+
+    } catch (e) {
+      debugPrint("Erreur ajout tag: $e");
+      // En cas d'erreur, on annule l'ajout dans l'interface
+      if (mounted) {
+        setState(() => _tags.remove(cleanName));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur lors de l'ajout du tag : $e")),
+        );
+      }
     }
   }
 
