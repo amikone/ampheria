@@ -71,7 +71,7 @@ Future<void> updateUserActivity() async {
 
   try {
     await supabase.from('profiles').update({
-      'last_active_at': DateTime.now().toUtc(),
+      'last_active_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);
   } catch (e) {
     print("Erreur lors de la mise à jour de last_active_at: $e");

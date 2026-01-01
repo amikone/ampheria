@@ -25,8 +25,6 @@ class LoginPage extends StatelessWidget {
         ),
       ),
     );
-
-
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E2C), // Dark background color
       body: SafeArea(
@@ -56,7 +54,6 @@ class LoginPage extends StatelessWidget {
                   style: TextStyle(fontSize: 16, color: Colors.white70),
                 ),
                 const SizedBox(height: 32),
-
                 Theme(
                   data: darkTheme,
                   child: SupaEmailAuth(
@@ -69,7 +66,6 @@ class LoginPage extends StatelessWidget {
                     onSignUpComplete: (response) {
                       debugPrint('🆕 Compte créé : ${response.user?.email}');
                     },
-
                     metadataFields: const [],
                   ),
                 ),
