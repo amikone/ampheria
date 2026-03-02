@@ -230,17 +230,29 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
-      // 2. Étape Clé : On insère le tag, s'il existe déjà, Supabase renvoie l'existant.
-      // Grâce à 'onConflict: name', on évite les erreurs de doublons.
-      final tagData = await supabase
+      int tagId;
+
+      // 1. On cherche si le tag existe déjà
+      final existingTag = await supabase
           .from('tags')
-          .upsert({'name': cleanName}, onConflict: 'name')
           .select('id')
-          .single();
+          .eq('name', cleanName)
+          .maybeSingle();
 
-      final int tagId = tagData['id'];
+      if (existingTag != null) {
+        // Le tag existe, on récupère juste son ID
+        tagId = existingTag['id'];
+      } else {
+        // Le tag n'existe pas, on l'insère
+        final newTag = await supabase
+            .from('tags')
+            .insert({'name': cleanName})
+            .select('id')
+            .single();
+        tagId = newTag['id'];
+      }
 
-      // 3. Liaison avec le profil
+      // 2. Liaison avec le profil (ici le upsert est ok car l'utilisateur modifie SES propres liaisons)
       await supabase.from('profile_tags').upsert({
         'profile_id': user.id,
         'tag_id': tagId,
@@ -248,7 +260,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     } catch (e) {
       debugPrint("Erreur ajout tag: $e");
-      // En cas d'erreur, on annule l'ajout dans l'interface
       if (mounted) {
         setState(() => _tags.remove(cleanName));
         ScaffoldMessenger.of(context).showSnackBar(
