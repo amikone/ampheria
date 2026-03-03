@@ -668,7 +668,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 return FilterChip(
                   label: Text(displayText),
                   selected: isSelected,
-                  selectedColor: primaryColor.withOpacity(0.2),
+                  selectedColor: Colors.grey,
                   checkmarkColor: primaryColor,
                   onSelected: (selected) {
                     setState(() {
