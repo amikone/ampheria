@@ -74,6 +74,7 @@ class _LikePageState extends State<LikePage> {
 
     try {
       await supabase.functions.invoke('like-user', body: {'liked_id': likedId});
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('💖 Vous avez liké cette personne')),
       );
@@ -88,17 +89,35 @@ class _LikePageState extends State<LikePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Likes reçus')),
+      // --- STYLE APPBAR MODIFIÉ ---
+      appBar: AppBar(
+        title: const Text(
+          'Likes reçus',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _likesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            );
           }
 
           final likes = snapshot.data ?? [];
           if (likes.isEmpty) {
-            return const Center(child: Text("Aucun like pour le moment 😢"));
+            return const Center(
+              child: Text(
+                "Aucun like pour le moment 😢",
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            );
           }
 
           return Padding(
@@ -132,7 +151,7 @@ class _LikePageState extends State<LikePage> {
                         decoration: const BoxDecoration(
                           color: Color(0xFF1E1E2C),
                           borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(20)),
+                          BorderRadius.vertical(top: Radius.circular(20)),
                         ),
                         child: ProfileDetailModal(profileId: profile['id']),
                       ),
@@ -150,7 +169,7 @@ class _LikePageState extends State<LikePage> {
                           imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
-                              const Center(child: Icon(Icons.broken_image)),
+                          const Center(child: Icon(Icons.broken_image)),
                         ),
                         DecoratedBox(
                           decoration: BoxDecoration(
@@ -188,15 +207,16 @@ class _LikePageState extends State<LikePage> {
                               const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
+                                MainAxisAlignment.spaceAround,
                                 children: [
                                   ElevatedButton(
                                     onPressed: () => _rejectLike(profile['id']),
                                     style: ElevatedButton.styleFrom(
                                       shape: const CircleBorder(),
-                                      padding: const EdgeInsets.all(16),
+                                      padding: const EdgeInsets.all(12),
                                       backgroundColor: Colors.white,
                                       foregroundColor: Colors.red,
+                                      elevation: 2,
                                     ),
                                     child: const Icon(Icons.close),
                                   ),
@@ -204,10 +224,11 @@ class _LikePageState extends State<LikePage> {
                                     onPressed: () => _likeBack(profile['id']),
                                     style: ElevatedButton.styleFrom(
                                       shape: const CircleBorder(),
-                                      padding: const EdgeInsets.all(16),
+                                      padding: const EdgeInsets.all(12),
                                       backgroundColor:
-                                          Theme.of(context).primaryColor,
+                                      Theme.of(context).colorScheme.primary,
                                       foregroundColor: Colors.white,
+                                      elevation: 2,
                                     ),
                                     child: const Icon(Icons.favorite),
                                   ),

@@ -16,8 +16,6 @@ import 'package:uuid/uuid.dart';
 
 import '../../Widgets/ProfileDetailModal.dart';
 
-
-
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
 
@@ -35,7 +33,6 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
     _loadConversations();
   }
-
 
   Future<void> _loadConversations() async {
     final response = await supabase.functions.invoke('get-conversations');
@@ -95,7 +92,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -105,11 +101,20 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Mes chats")),
+      // --- STYLE APPBAR MODIFIÉ ---
+      appBar: AppBar(
+        title: const Text(
+          "Mes chats",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+      ),
       body: _conversations.isEmpty
           ? const Center(
         child: Text(
-          "Tu n'a aucune conversation pour le moment",
+          "Tu n'as aucune conversation pour le moment",
           style: TextStyle(fontSize: 14, color: Colors.grey),
         ),
       )
@@ -149,7 +154,6 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-
 class ConversationPage extends StatefulWidget {
   final int matchId;
   final Map<String, dynamic> user;
@@ -175,7 +179,7 @@ class _ConversationPageState extends State<ConversationPage> {
     _subscribeToRealtime();
   }
 
-  final _signedUrlCache = <String, String>{}; 
+  final _signedUrlCache = <String, String>{};
 
   Future<String> _signedUrlFor(String path, {int expiresSeconds = 3600}) async {
     if (_signedUrlCache.containsKey(path)) return _signedUrlCache[path]!;
@@ -242,7 +246,6 @@ class _ConversationPageState extends State<ConversationPage> {
     });
   }
 
-
   void _handleSendPressed(String text) async {
     if (text.trim().isEmpty) return;
 
@@ -254,9 +257,6 @@ class _ConversationPageState extends State<ConversationPage> {
 
     await supabase.from('messages').insert(newMessage).select().single();
   }
-
-
-
 
   Future<User> _resolveUser(String userId) async {
     if (userId == _currentUserId) {
@@ -308,7 +308,49 @@ class _ConversationPageState extends State<ConversationPage> {
         try {
           await supabase.storage.from('chat-pictures').remove([filePath]);
         } catch (e) {
-          // ignore ou affiche une erreur/toast si tu veux
+          // ignore
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteCurrentMatch() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer ce match ?'),
+        content: const Text('Cette action est irréversible. Vous ne pourrez plus discuter avec cette personne.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await supabase.from('matches').delete().eq('id', widget.matchId);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Match supprimé avec succès.")),
+          );
+          Navigator.pop(context, true);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text("Erreur lors de la suppression du match."),
+                backgroundColor: Colors.red),
+          );
         }
       }
     }
@@ -318,7 +360,6 @@ class _ConversationPageState extends State<ConversationPage> {
   void dispose() {
     _subscription?.cancel();
     _chatController.dispose();
-
     super.dispose();
   }
 
@@ -343,10 +384,7 @@ class _ConversationPageState extends State<ConversationPage> {
       quality: 80,
     );
 
-
     if (compressedBytes == null) return;
-
-
 
     const maxSize = 2 * 1024 * 1024; // 2 Mo
     if (compressedBytes.length > maxSize) {
@@ -366,7 +404,6 @@ class _ConversationPageState extends State<ConversationPage> {
       compressedBytes,
       fileOptions: FileOptions(contentType: mimeType, upsert: false),
     );
-
 
     await supabase.from('messages').insert({
       'match_id': widget.matchId,
@@ -396,11 +433,13 @@ class _ConversationPageState extends State<ConversationPage> {
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
+    // --- STYLE APPBAR MODIFIÉ ---
     final appBar = AppBar(
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      centerTitle: true,
       title: GestureDetector(
         onTap: () {
           final profileId = widget.user['id'];
@@ -413,16 +452,26 @@ class _ConversationPageState extends State<ConversationPage> {
                 height: MediaQuery.of(context).size.height * 0.9,
                 decoration: const BoxDecoration(
                   color: Color(0xFF1E1E2C),
-                  borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: ProfileDetailModal(profileId: profileId),
               ),
             );
           }
         },
-        child: Text(widget.user['full_name'] ?? widget.user['username']),
+        child: Text(
+          widget.user['full_name'] ?? widget.user['username'],
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.person_remove),
+          color: Colors.redAccent,
+          tooltip: 'Supprimer le match',
+          onPressed: _deleteCurrentMatch,
+        ),
+      ],
     );
 
     if (_isLoading) {
@@ -431,44 +480,44 @@ class _ConversationPageState extends State<ConversationPage> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    return Scaffold(
-      appBar: appBar,
-      body: Chat(    // Enregistre le message image dans la base
 
-        chatController: _chatController,
-        currentUserId: _currentUserId,
-        onMessageSend: _handleSendPressed,
-        resolveUser: _resolveUser,
-        theme: ChatTheme.dark(),
-        onAttachmentTap: _onAttachmentPressed,
-        builders: Builders(
-          imageMessageBuilder: (context, message, index, {
-            required bool isSentByMe,
-            MessageGroupStatus? groupStatus,
-          }) {
-            return GestureDetector(
-              onTap: () => showDialog(
-                context: context,
-                builder: (context) => GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    color: Colors.black,
-                    child: PhotoView(
-                      imageProvider: NetworkImage((message).source),
-                      backgroundDecoration: const BoxDecoration(color: Colors.black),
+    return Scaffold(
+        appBar: appBar,
+        body: Chat(
+          chatController: _chatController,
+          currentUserId: _currentUserId,
+          onMessageSend: _handleSendPressed,
+          resolveUser: _resolveUser,
+          theme: ChatTheme.dark(),
+          onAttachmentTap: _onAttachmentPressed,
+          builders: Builders(
+            imageMessageBuilder: (context, message, index, {
+              required bool isSentByMe,
+              MessageGroupStatus? groupStatus,
+            }) {
+              return GestureDetector(
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (context) => GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      color: Colors.black,
+                      child: PhotoView(
+                        imageProvider: NetworkImage((message).source),
+                        backgroundDecoration: const BoxDecoration(color: Colors.black),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              child: FlyerChatImageMessage(
-                message: message,
-                index: index,
-              ),
-            );
-          },
-        ),
-        onMessageLongPress: _onMessageLongPress,
-      )
+                child: FlyerChatImageMessage(
+                  message: message,
+                  index: index,
+                ),
+              );
+            },
+          ),
+          onMessageLongPress: _onMessageLongPress,
+        )
     );
   }
 }

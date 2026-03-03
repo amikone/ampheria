@@ -16,6 +16,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final supabase = Supabase.instance.client;
   Timer? _debounce;
 
+  // --- State Variables ---
   String _bio = '';
   String _name = '';
   List<String> _photos = [];
@@ -29,6 +30,9 @@ class _ProfilePageState extends State<ProfilePage> {
   final _tagController = TextEditingController();
 
   bool _loading = true;
+
+  // --- Theme Constants ---
+  final double cardRadius = 16.0;
 
   @override
   void initState() {
@@ -44,6 +48,10 @@ class _ProfilePageState extends State<ProfilePage> {
     _savePreferences();
     super.dispose();
   }
+
+  // ==========================================
+  // LOGIC & API CALLS
+  // ==========================================
 
   Future<void> _loadInitialData() async {
     await Future.wait([
@@ -77,7 +85,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _saveProfile() async {
     if (_loading) return;
-    
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
@@ -146,7 +153,6 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       }
     } catch (e) {
-      debugPrint("Erreur lors de l'appel à la fonction: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Erreur: $e")),
@@ -172,7 +178,6 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       }
     } catch (e) {
-      debugPrint("Erreur suppression image: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Erreur lors de la suppression: $e")),
@@ -189,7 +194,7 @@ class _ProfilePageState extends State<ProfilePage> {
         .from('profile_tags')
         .select('tags(name)')
         .eq('profile_id', user.id);
-    
+
     if (mounted) {
       setState(() {
         _tags = List<String>.from(response.map((e) => e['tags']['name']));
@@ -217,13 +222,9 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    // 1. Normalisation : on enlève les espaces et on met en minuscule
-    // pour éviter les doublons (ex: "Foot" et "foot")
     final cleanName = tagName.trim().toLowerCase();
-
     if (cleanName.isEmpty || _tags.contains(cleanName)) return;
 
-    // UI Optimiste : on affiche le tag tout de suite pour la fluidité
     setState(() {
       _tags.add(cleanName);
       _tagController.clear();
@@ -231,8 +232,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       int tagId;
-
-      // 1. On cherche si le tag existe déjà
       final existingTag = await supabase
           .from('tags')
           .select('id')
@@ -240,10 +239,8 @@ class _ProfilePageState extends State<ProfilePage> {
           .maybeSingle();
 
       if (existingTag != null) {
-        // Le tag existe, on récupère juste son ID
         tagId = existingTag['id'];
       } else {
-        // Le tag n'existe pas, on l'insère
         final newTag = await supabase
             .from('tags')
             .insert({'name': cleanName})
@@ -252,14 +249,11 @@ class _ProfilePageState extends State<ProfilePage> {
         tagId = newTag['id'];
       }
 
-      // 2. Liaison avec le profil (ici le upsert est ok car l'utilisateur modifie SES propres liaisons)
       await supabase.from('profile_tags').upsert({
         'profile_id': user.id,
         'tag_id': tagId,
       });
-
     } catch (e) {
-      debugPrint("Erreur ajout tag: $e");
       if (mounted) {
         setState(() => _tags.remove(cleanName));
         ScaffoldMessenger.of(context).showSnackBar(
@@ -277,12 +271,12 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _tags.remove(tagName));
 
     try {
-       final tagResponse = await supabase
+      final tagResponse = await supabase
           .from('tags')
           .select('id')
           .eq('name', tagName)
           .single();
-      
+
       final tagId = tagResponse['id'];
 
       await supabase
@@ -291,11 +285,9 @@ class _ProfilePageState extends State<ProfilePage> {
           .eq('profile_id', user.id)
           .eq('tag_id', tagId);
     } catch(e) {
-      debugPrint("Erreur suppression tag: $e");
       setState(() => _tags = originalTags);
     }
   }
-
 
   Future<void> _loadPreferences() async {
     final user = supabase.auth.currentUser;
@@ -329,7 +321,7 @@ class _ProfilePageState extends State<ProfilePage> {
       'max_distance_km': _maxDistance.round(),
     });
   }
-  
+
   void _onPreferencesChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(seconds: 2), () {
@@ -337,301 +329,462 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-
   Future<void> _signOut(BuildContext context) async {
     await supabase.auth.signOut();
     if (context.mounted) Navigator.pushReplacementNamed(context, '/login');
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final user = supabase.auth.currentUser;
+  Future<void> _showChangePasswordDialog() async {
+    final passwordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isUpdatingPassword = false;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
-      body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  const SizedBox(height: 24),
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.deepPurple,
-                    child: Text(
-                      _name.substring(0, 1).toUpperCase() ?? "?",
-                      style: const TextStyle(fontSize: 32, color: Colors.white),
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Changer le mot de passe'),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Nouveau mot de passe', border: OutlineInputBorder()),
+                      validator: (value) => value == null || value.length < 6 ? 'Au moins 6 caractères requis' : null,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text(
-                      _name,
-                      style: const TextStyle(fontSize: 20),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: confirmPasswordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(labelText: 'Confirmer', border: OutlineInputBorder()),
+                      validator: (value) => value != passwordController.text ? 'Les mots de passe diffèrent' : null,
                     ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  const Text(
-                    "Mes passions",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple),
-                  ),
-                  const SizedBox(height: 8),
-                  Autocomplete<Map<String, dynamic>>(
-                    displayStringForOption: (option) => option['name'] as String,
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      if (textEditingValue.text.isEmpty) {
-                        return const Iterable<Map<String, dynamic>>.empty();
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  onPressed: isUpdatingPassword ? null : () async {
+                    if (formKey.currentState!.validate()) {
+                      setStateDialog(() => isUpdatingPassword = true);
+                      try {
+                        await supabase.auth.updateUser(UserAttributes(password: passwordController.text));
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Mot de passe mis à jour !"), backgroundColor: Colors.green),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Erreur: ${e.toString()}"), backgroundColor: Colors.red),
+                          );
+                        }
+                      } finally {
+                        setStateDialog(() => isUpdatingPassword = false);
                       }
-                      return _searchTags(textEditingValue.text);
-                    },
-                    onSelected: (selection) => _addTag(selection['name'] as String),
-                    optionsViewBuilder: (context, onSelected, options) {
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Material(
-                          elevation: 4.0,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 200),
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              shrinkWrap: true,
-                              itemCount: options.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                final option = options.elementAt(index);
-                                final name = option['name'] as String;
-                                final count = option['count'] as int;
-                                return InkWell(
-                                  onTap: () => onSelected(option),
-                                  child: ListTile(
-                                    title: Text(name),
-                                    trailing: Text("$count personne(s)"),
-                                  ),
-                                );
-                              },
+                    }
+                  },
+                  child: isUpdatingPassword
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Valider'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ==========================================
+  // UI SECTIONS (Adaptées au mode Sombre/Clair)
+  // ==========================================
+
+  Widget _buildSectionTitle(String title, IconData icon, Color primaryColor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        children: [
+          Icon(icon, color: primaryColor),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(Color primaryColor) {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: primaryColor.withOpacity(0.5), width: 3),
+          ),
+          child: CircleAvatar(
+            radius: 48,
+            backgroundColor: primaryColor,
+            child: Text(
+              _name.isNotEmpty ? _name.substring(0, 1).toUpperCase() : "?",
+              style: const TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _name,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildBioSection(Color primaryColor) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle("À propos de moi", Icons.person_outline, primaryColor),
+            TextFormField(
+              initialValue: _bio,
+              maxLines: 3,
+              maxLength: 250,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.grey.withOpacity(0.1), // S'adapte au mode sombre
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                hintText: "Parle un peu de toi...",
+              ),
+              onChanged: (value) {
+                _bio = value;
+                _onProfileChanged();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPassionsSection(Color primaryColor) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle("Mes passions", Icons.favorite_outline, primaryColor),
+            Autocomplete<Map<String, dynamic>>(
+              displayStringForOption: (option) => option['name'] as String,
+              optionsBuilder: (textEditingValue) {
+                if (textEditingValue.text.isEmpty) return const Iterable<Map<String, dynamic>>.empty();
+                return _searchTags(textEditingValue.text);
+              },
+              onSelected: (selection) => _addTag(selection['name'] as String),
+              optionsViewBuilder: (context, onSelected, options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4.0,
+                    borderRadius: BorderRadius.circular(8),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final option = options.elementAt(index);
+                          return ListTile(
+                            title: Text(option['name'] as String),
+                            trailing: Text(
+                                "${option['count']} personne(s)",
+                                style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor)
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                    fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                      _tagController.addListener(() {
-                        controller.text = _tagController.text;
-                        controller.selection = _tagController.selection;
-                      });
-
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: InputDecoration(
-                          hintText: 'Ajouter une passion...',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.add),
-                            onPressed: () => _addTag(controller.text.trim()),
-                          ),
-                        ),
-                        onEditingComplete: () {
-                          onEditingComplete();
-                           _addTag(controller.text.trim());
+                            onTap: () => onSelected(option),
+                          );
                         },
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8.0,
-                    runSpacing: 4.0,
-                    children: _tags.map((tag) => Chip(
-                      label: Text(tag),
-                      onDeleted: () => _removeTag(tag),
-                      deleteIconColor: Colors.deepPurple,
-                      backgroundColor: Colors.deepPurple.withOpacity(0.1),
-                    )).toList(),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  const Text(
-                    "Ma description",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: _bio,
-                    maxLines: 3,
-                    maxLength: 250,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
                       ),
-                      hintText: "Parle un peu de toi...",
-                    ),
-                    onChanged: (value) {
-                      _bio = value;
-                      _onProfileChanged();
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  const Text(
-                    "Mes photos",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple),
-                  ),
-                  const SizedBox(height: 8),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _photos.length + 1,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                    ),
-                    itemBuilder: (context, index) {
-                      if (index == _photos.length) {
-                        return GestureDetector(
-                          onTap: _pickAndUploadPhoto,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.deepPurple.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.add, color: Colors.deepPurple),
-                          ),
-                        );
-                      }
-
-                      final photoUrl = _photos[index];
-                      return Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(photoUrl, fit: BoxFit.cover),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: () => _removePhoto(photoUrl),
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
-                                ),
-                                padding: const EdgeInsets.all(4),
-                                child: const Icon(Icons.close, color: Colors.white, size: 18),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  
-                  const SizedBox(height: 32),
-
-                  const Text(
-                    "Préférences de rencontre",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  const Text("Genre(s) recherché(s)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Wrap(
-                    spacing: 8,
-                    children: ['male', 'female', 'other'].map((gender) {
-                      final isSelected = _interestedIn.contains(gender);
-                      String displayText;
-                      if (gender == 'male') {
-                        displayText = 'Homme';
-                      } else if (gender == 'female') {
-                        displayText = 'Femme';
-                      } else {
-                        displayText = 'Autre';
-                      }
-                      return FilterChip(
-                        label: Text(displayText),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _interestedIn.add(gender);
-                            } else {
-                              _interestedIn.remove(gender);
-                            }
-                            _onPreferencesChanged();
-                          });
-                        },
-                      );
-                    }).toList(),
+                );
+              },
+              fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    hintText: 'Ajouter une passion...',
+                    filled: true,
+                    fillColor: Colors.grey.withOpacity(0.1), // Adaptatif
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    suffixIcon: IconButton(
+                      icon: Icon(Icons.add_circle, color: primaryColor),
+                      onPressed: () {
+                        _addTag(controller.text.trim());
+                        controller.clear();
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 24),
+                  onSubmitted: (value) {
+                    _addTag(value.trim());
+                    controller.clear();
+                  },
+                );
+              },
+            ),
+            if (_tags.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 8.0,
+                children: _tags.map((tag) => Chip(
+                  label: Text(tag, style: TextStyle(color: primaryColor)),
+                  onDeleted: () => _removeTag(tag),
+                  deleteIconColor: primaryColor,
+                  backgroundColor: primaryColor.withOpacity(0.1),
+                  side: BorderSide.none,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                )).toList(),
+              ),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
 
-                  const Text("Tranche d'âge", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  RangeSlider(
-                    min: 18,
-                    max: 99,
-                    divisions: 81,
-                    labels: RangeLabels("${_minAge.round()}", "${_maxAge.round()}"),
-                    values: RangeValues(_minAge, _maxAge),
-                    onChanged: (values) {
-                      setState(() {
-                        _minAge = values.start;
-                        _maxAge = values.end;
-                      });
-                    },
-                    onChangeEnd: (values) {
-                       _onPreferencesChanged();
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  const Text("Distance maximale (km)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Slider(
-                    min: 1,
-                    max: 200,
-                    divisions: 199,
-                    label: "${_maxDistance.round()} km",
-                    value: _maxDistance,
-                    onChanged: (value) => setState(() => _maxDistance = value),
-                    onChangeEnd: (value) {
-                       _onPreferencesChanged();
-                    },
-                  ),
-                  const SizedBox(height: 48),
-
-                  ElevatedButton.icon(
-                    onPressed: () => _signOut(context),
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Se déconnecter'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade400,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
+  Widget _buildPhotosSection(Color primaryColor) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle("Mes photos", Icons.photo_library_outlined, primaryColor),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _photos.length + 1,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+              ),
+              itemBuilder: (context, index) {
+                if (index == _photos.length) {
+                  return InkWell(
+                    onTap: _pickAndUploadPhoto,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.05),
+                        border: Border.all(color: primaryColor.withOpacity(0.3), width: 2, style: BorderStyle.none),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      minimumSize: const Size(double.infinity, 48),
+                      child: Icon(Icons.add_a_photo, color: primaryColor.withOpacity(0.7), size: 32),
                     ),
-                  ),
-                ],
+                  );
+                }
+
+                final photoUrl = _photos[index];
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(photoUrl, fit: BoxFit.cover),
+                    ),
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: IconButton(
+                        icon: Container(
+                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(Icons.close, color: Colors.white, size: 14),
+                        ),
+                        onPressed: () => _removePhoto(photoUrl),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreferencesSection(Color primaryColor) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle("Préférences de rencontre", Icons.tune, primaryColor),
+
+            const Text("Genre(s) recherché(s)", style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              children: ['male', 'female', 'other'].map((gender) {
+                final isSelected = _interestedIn.contains(gender);
+                String displayText = gender == 'male' ? 'Homme' : (gender == 'female' ? 'Femme' : 'Autre');
+                return FilterChip(
+                  label: Text(displayText),
+                  selected: isSelected,
+                  selectedColor: primaryColor.withOpacity(0.2),
+                  checkmarkColor: primaryColor,
+                  onSelected: (selected) {
+                    setState(() {
+                      selected ? _interestedIn.add(gender) : _interestedIn.remove(gender);
+                      _onPreferencesChanged();
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+            const Divider(height: 32),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Tranche d'âge", style: TextStyle(fontWeight: FontWeight.w600)),
+                Text("${_minAge.round()} - ${_maxAge.round()} ans", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            RangeSlider(
+              activeColor: primaryColor,
+              inactiveColor: primaryColor.withOpacity(0.2),
+              min: 18,
+              max: 99,
+              divisions: 81,
+              values: RangeValues(_minAge, _maxAge),
+              onChanged: (values) => setState(() {
+                _minAge = values.start;
+                _maxAge = values.end;
+              }),
+              onChangeEnd: (_) => _onPreferencesChanged(),
+            ),
+            const Divider(height: 32),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Distance maximale", style: TextStyle(fontWeight: FontWeight.w600)),
+                Text("${_maxDistance.round()} km", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            Slider(
+              activeColor: primaryColor,
+              inactiveColor: primaryColor.withOpacity(0.2),
+              min: 1,
+              max: 200,
+              divisions: 199,
+              value: _maxDistance,
+              onChanged: (value) => setState(() => _maxDistance = value),
+              onChangeEnd: (_) => _onPreferencesChanged(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // MAIN BUILD METHOD
+  // ==========================================
+
+  @override
+  Widget build(BuildContext context) {
+    // On récupère la couleur primaire dynamique de ton thème global
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    return Scaffold(
+      // On retire le backgroundColor forcé pour laisser le Theme gérer
+      appBar: AppBar(
+        title: const Text('Profil', style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent, // Laisse apparaitre le fond du Scaffold
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Changer le mot de passe',
+            onPressed: _showChangePasswordDialog,
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: _loading
+            ? Center(child: CircularProgressIndicator(color: primaryColor))
+            : ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          children: [
+            _buildProfileHeader(primaryColor),
+            _buildBioSection(primaryColor),
+            const SizedBox(height: 16),
+            _buildPassionsSection(primaryColor),
+            const SizedBox(height: 16),
+            _buildPhotosSection(primaryColor),
+            const SizedBox(height: 16),
+            _buildPreferencesSection(primaryColor),
+            const SizedBox(height: 32),
+
+            // Bouton de déconnexion adapté au thème sombre
+            ElevatedButton.icon(
+              onPressed: () => _signOut(context),
+              icon: const Icon(Icons.logout),
+              label: const Text('Se déconnecter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent.withOpacity(0.1),
+                foregroundColor: Colors.redAccent,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.redAccent.withOpacity(0.5)),
+                ),
               ),
+            ),
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
     );
   }

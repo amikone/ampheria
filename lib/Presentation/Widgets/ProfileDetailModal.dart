@@ -175,10 +175,122 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
     }
   }
 
+  // --- Fonction pour afficher la modale de signalement ---
+  Future<void> _showReportDialog(BuildContext context, String reportedId) async {
+    final textController = TextEditingController();
+    bool isSubmitting = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF2C2C3E),
+              title: const Text('Signaler ce profil', style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Veuillez indiquer la raison de votre signalement :',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: textController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Faux profil, comportement inapproprié...',
+                      hintStyle: const TextStyle(color: Colors.white38),
+                      filled: true,
+                      fillColor: const Color(0xFF1E1E2C),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting ? null : () => Navigator.pop(context),
+                  child: const Text('Annuler', style: TextStyle(color: Colors.white54)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                    final reason = textController.text.trim();
+                    if (reason.isEmpty) return;
+
+                    setState(() => isSubmitting = true);
+
+                    try {
+                      final supabase = Supabase.instance.client;
+                      final currentUser = supabase.auth.currentUser;
+
+                      if (currentUser == null) throw Exception("Utilisateur non connecté");
+
+                      // Remplacement de .insert() par .upsert()
+                      await supabase.from('reports').upsert({
+                        'reporter_id': currentUser.id,
+                        'reported_id': reportedId,
+                        'reason': reason,
+                        'content_type': 'profile',
+                        // Optionnel: 'updated_at': DateTime.now().toIso8601String(),
+                      }, onConflict: 'reporter_id, reported_id');
+                      // onConflict indique à Supabase quelles colonnes vérifier pour savoir si ça existe déjà
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Le profil a été signalé avec succès.'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      setState(() => isSubmitting = false);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Erreur lors du signalement : $e'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: isSubmitting
+                      ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                      : const Text('Signaler'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final photos = List<String>.from(widget.profile['photos'] ?? []);
     final fullName = widget.profile['full_name'] ?? 'Utilisateur';
+
+    // Assure-toi que ton RPC 'get_profile_by_id' renvoie bien l'ID du profil
+    final profileId = widget.profile['id'];
 
     return SliverAppBar(
       expandedHeight: 450.0,
@@ -186,12 +298,21 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
       pinned: true,
       stretch: true,
       automaticallyImplyLeading: false,
+      // --- Ajout du bouton de signalement ici ---
+      actions: [
+        if (profileId != null)
+          IconButton(
+            icon: const Icon(Icons.flag_outlined, color: Colors.white70),
+            tooltip: 'Signaler ce profil',
+            onPressed: () => _showReportDialog(context, profileId),
+          ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         stretchModes: const [StretchMode.zoomBackground],
         background: Stack(
+          // ... (Le reste de ton Stack reste exactement le même, aucune modification requise)
           fit: StackFit.expand,
           children: [
-            // --- Le PageView pour les photos (gère le swipe) ---
             PageView.builder(
               controller: _pageController,
               itemCount: photos.isNotEmpty ? photos.length : 1,
@@ -201,20 +322,18 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                 return Image.network(url, fit: BoxFit.cover);
               },
             ),
-            
-            // --- Le dégradé pour la lisibilité du texte ---
+
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black54, Colors.black],
-                  stops: [0.5, 0.8, 1.0],
+                  colors: [Colors.black45, Colors.transparent, Colors.black],
+                  stops: [0.0, 0.4, 1.0], // J'ai ajouté une légère ombre en haut pour que l'icône de flag soit visible
                 ),
               ),
             ),
-            
-            // --- Zones de clic invisibles (gère le tap) ---
+
             Row(
               children: [
                 Expanded(
@@ -232,7 +351,6 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
               ],
             ),
 
-            // --- Le contenu UI (nom, indicateurs) ---
             Positioned(
               bottom: 16,
               left: 24,
