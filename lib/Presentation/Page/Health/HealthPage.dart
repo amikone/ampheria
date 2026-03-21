@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../Models/DonationCardModel.dart';
 import '../../../Utils/Icons.dart';
@@ -14,11 +18,93 @@ class HealthPage extends StatefulWidget {
 
 class _HealthPageState extends State<HealthPage> {
   late final SupabaseClient supabase;
+  final InAppPurchase _inAppPurchase = InAppPurchase.instance;
+  late StreamSubscription<List<PurchaseDetails>> _subscription;
+  List<ProductDetails> _products = [];
+  bool _iapAvailable = false;
+
+  static const Set<String> _productIds = {'case0', 'case1', 'case2', 'case3'};
 
   @override
   void initState() {
     supabase = Supabase.instance.client;
     super.initState();
+
+    final Stream<List<PurchaseDetails>> purchaseUpdated = _inAppPurchase.purchaseStream;
+    _subscription = purchaseUpdated.listen((List<PurchaseDetails> purchaseDetailsList) {
+      _listenToPurchaseUpdated(purchaseDetailsList);
+    }, onDone: () {
+      _subscription.cancel();
+    }, onError: (Object error) {
+      debugPrint("IAP_ERROR: $error");
+    });
+
+    _initStore();
+  }
+
+  Future<void> _initStore() async {
+    try {
+      final bool available = await _inAppPurchase.isAvailable();
+      if (!available) {
+        debugPrint("IAP_LOG: Store not available");
+        setState(() {
+          _iapAvailable = false;
+        });
+        return;
+      }
+
+      final ProductDetailsResponse response = await _inAppPurchase.queryProductDetails(_productIds);
+      
+      if (response.error != null) {
+        debugPrint("IAP_LOG: Error querying products: ${response.error!.message}");
+      }
+
+      if (response.notFoundIDs.isNotEmpty) {
+        debugPrint("IAP_LOG: Products not found: ${response.notFoundIDs}");
+      }
+
+      debugPrint("IAP_LOG: Found ${response.productDetails.length} products");
+
+      setState(() {
+        _products = response.productDetails;
+        _products.sort((a, b) => a.rawPrice.compareTo(b.rawPrice)); // Trier par prix
+        _iapAvailable = true;
+      });
+    } catch (e) {
+      debugPrint("IAP_LOG: Exception in _initStore: $e");
+    }
+  }
+
+  void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) async {
+    for (final PurchaseDetails purchaseDetails in purchaseDetailsList) {
+      if (purchaseDetails.status == PurchaseStatus.pending) {
+        // Afficher un indicateur de chargement si besoin
+      } else {
+        if (purchaseDetails.status == PurchaseStatus.error) {
+          debugPrint("IAP_LOG: Purchase error: ${purchaseDetails.error}");
+        } else if (purchaseDetails.status == PurchaseStatus.purchased ||
+            purchaseDetails.status == PurchaseStatus.restored) {
+          // Valider l'achat (optionnel: envoyer à ton backend/supabase)
+          
+          // Sur Android, il faut "consommer" le produit pour qu'il puisse être racheté (don répétable)
+          if (Platform.isAndroid) {
+             final InAppPurchaseAndroidPlatformAddition androidAddition =
+                _inAppPurchase.getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+             await androidAddition.consumePurchase(purchaseDetails);
+          }
+        }
+        
+        if (purchaseDetails.pendingCompletePurchase) {
+          await _inAppPurchase.completePurchase(purchaseDetails);
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
   }
 
   Future<({List<DonationCardModel> cards, double? collecteActuelle})> _load() async {
@@ -45,13 +131,87 @@ class _HealthPageState extends State<HealthPage> {
     return (cards: cards, collecteActuelle: collecteActuelle);
   }
 
+  void _buyProduct(ProductDetails product) {
+    final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
+    // On utilise buyConsumable car un don doit pouvoir être refait plusieurs fois
+    _inAppPurchase.buyConsumable(purchaseParam: purchaseParam);
+  }
+
+  void _showDonationOptions(BuildContext context, Color primaryColor) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[600],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text(
+              "Choisir un montant",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 2.2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: _products.length,
+              itemBuilder: (context, index) {
+                final product = _products[index];
+                return ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _buyProduct(product);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor.withOpacity(0.1),
+                    foregroundColor: primaryColor,
+                    elevation: 0,
+                    side: BorderSide(color: primaryColor.withOpacity(0.5)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    product.price,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "Merci pour votre soutien ! ❤️",
+              style: TextStyle(color: Colors.grey[500], fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Récupération de la couleur principale du thème pour l'adapter au mode sombre/clair
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      // --- STYLE APPBAR MODIFIÉ ---
       appBar: AppBar(
         title: const Text(
           'Soutenir Amikone ❤️',
@@ -65,9 +225,7 @@ class _HealthPageState extends State<HealthPage> {
         future: _load(),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(color: primaryColor),
-            );
+            return Center(child: CircularProgressIndicator(color: primaryColor));
           }
           if (snap.hasError) {
             return Center(child: Text('Erreur: ${snap.error}'));
@@ -118,10 +276,7 @@ class _HealthPageState extends State<HealthPage> {
                     Expanded(
                       child: Text(
                         c.title ?? '',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -132,7 +287,7 @@ class _HealthPageState extends State<HealthPage> {
                     c.body!,
                     style: TextStyle(
                       fontSize: 16,
-                      height: 1.5, // Interligne plus aéré
+                      height: 1.5,
                       color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.9),
                     ),
                     textAlign: TextAlign.justify,
@@ -170,10 +325,7 @@ class _HealthPageState extends State<HealthPage> {
                     Expanded(
                       child: Text(
                         c.title ?? 'Objectif',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -186,10 +338,7 @@ class _HealthPageState extends State<HealthPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Collectés',
-                          style: TextStyle(fontSize: 14, color: Theme.of(context).hintColor),
-                        ),
+                        Text('Collectés', style: TextStyle(fontSize: 14, color: Theme.of(context).hintColor)),
                         Text(
                           '${actuel.toStringAsFixed(0)} €',
                           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryColor),
@@ -207,7 +356,7 @@ class _HealthPageState extends State<HealthPage> {
                   borderRadius: BorderRadius.circular(12),
                   child: LinearProgressIndicator(
                     value: progression,
-                    backgroundColor: primaryColor.withOpacity(0.15), // Mieux adapté au mode sombre
+                    backgroundColor: primaryColor.withOpacity(0.15),
                     color: primaryColor,
                     minHeight: 12,
                   ),
@@ -221,42 +370,13 @@ class _HealthPageState extends State<HealthPage> {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: ElevatedButton.icon(
-            onPressed: () async {
-              final url = c.buttonUrl;
-              if (url == null || url.isEmpty) return;
-
-              if (url == 'action_stripe_checkout') {
-                try {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Préparation de la page de don... ⏳')),
-                  );
-
-                  final res = await supabase.functions.invoke(
-                    'stripe-checkout',
-                  );
-
-                  final responseData = res.data;
-                  if (responseData != null && responseData['url'] != null) {
-                    final stripeUri = Uri.parse(responseData['url']);
-
-                    if (await canLaunchUrl(stripeUri)) {
-                      await launchUrl(stripeUri, mode: LaunchMode.externalApplication);
-                    }
-                  }
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur de connexion : $e')),
-                  );
-                }
-                return;
-              }
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Redirection... 💜')),
-              );
-              final uri = Uri.parse(url);
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+            onPressed: () {
+              if (_iapAvailable && _products.isNotEmpty) {
+                _showDonationOptions(context, primaryColor);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Le service de paiement n'est pas disponible pour le moment.")),
+                );
               }
             },
             icon: Icon(iconFromName(c.icon), color: Colors.white),

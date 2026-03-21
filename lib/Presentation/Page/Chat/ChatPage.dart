@@ -123,7 +123,8 @@ class _ChatPageState extends State<ChatPage> {
         itemBuilder: (context, index) {
           final conv = _conversations[index];
           final user = conv['user'];
-          final photo = (user['photos'] as List?)?.first ?? '';
+          final photos = user['photos'] as List?;
+          final photo = (photos != null && photos.isNotEmpty) ? photos.first : '';
           final matchId = conv['match_id'];
 
           return Dismissible(

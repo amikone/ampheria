@@ -178,7 +178,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                 (v == null || v.isEmpty) ? 'La date de naissance est requise' : null,
               ),
               DropdownButtonFormField<String>(
-                value: _selectedGender,
+                initialValue: _selectedGender,
                 items: const [
                   DropdownMenuItem(value: 'male', child: Text('Homme')),
                   DropdownMenuItem(value: 'female', child: Text('Femme')),
