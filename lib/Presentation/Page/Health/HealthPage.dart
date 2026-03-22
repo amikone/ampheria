@@ -22,6 +22,7 @@ class _HealthPageState extends State<HealthPage> {
   late StreamSubscription<List<PurchaseDetails>> _subscription;
   List<ProductDetails> _products = [];
   bool _iapAvailable = false;
+  bool _isProcessing = false;
 
   static const Set<String> _productIds = {'case0', 'case1', 'case2', 'case3'};
 
@@ -78,15 +79,16 @@ class _HealthPageState extends State<HealthPage> {
   void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) async {
     for (final PurchaseDetails purchaseDetails in purchaseDetailsList) {
       if (purchaseDetails.status == PurchaseStatus.pending) {
-        // Afficher un indicateur de chargement si besoin
+        setState(() => _isProcessing = true);
       } else {
         if (purchaseDetails.status == PurchaseStatus.error) {
           debugPrint("IAP_LOG: Purchase error: ${purchaseDetails.error}");
+          setState(() => _isProcessing = false);
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
-          // Valider l'achat (optionnel: envoyer à ton backend/supabase)
           
-          // Sur Android, il faut "consommer" le produit pour qu'il puisse être racheté (don répétable)
+          await _verifyPurchaseOnServer(purchaseDetails);
+          
           if (Platform.isAndroid) {
              final InAppPurchaseAndroidPlatformAddition androidAddition =
                 _inAppPurchase.getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
@@ -97,7 +99,38 @@ class _HealthPageState extends State<HealthPage> {
         if (purchaseDetails.pendingCompletePurchase) {
           await _inAppPurchase.completePurchase(purchaseDetails);
         }
+        setState(() => _isProcessing = false);
       }
+    }
+  }
+
+  Future<void> _verifyPurchaseOnServer(PurchaseDetails purchase) async {
+    try {
+      // Appel de la Edge Function Supabase pour la vérification sécurisée
+      final response = await supabase.functions.invoke(
+        'verify-purchase',
+        body: {
+          'platform': Platform.isAndroid ? 'android' : 'ios',
+          'productId': purchase.productID,
+          'token': purchase.verificationData.serverVerificationData,
+          'transactionId': purchase.purchaseID, 
+        },
+      );
+
+      if (response.status == 200) {
+        debugPrint("IAP_LOG: Purchase verified and recorded by server!");
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Merci pour votre don ! ❤️"), backgroundColor: Colors.green),
+          );
+           // On force un rechargement pour voir la barre de progression bouger
+           setState(() {});
+        }
+      } else {
+        debugPrint("IAP_LOG: Server verification failed with status: ${response.status}");
+      }
+    } catch (e) {
+      debugPrint("IAP_LOG: Server verification exception: $e");
     }
   }
 
@@ -133,7 +166,6 @@ class _HealthPageState extends State<HealthPage> {
 
   void _buyProduct(ProductDetails product) {
     final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
-    // On utilise buyConsumable car un don doit pouvoir être refait plusieurs fois
     _inAppPurchase.buyConsumable(purchaseParam: purchaseParam);
   }
 
@@ -141,68 +173,78 @@ class _HealthPageState extends State<HealthPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.grey[600],
-                borderRadius: BorderRadius.circular(2),
-              ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            const Text(
-              "Choisir un montant",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 2.2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: _products.length,
-              itemBuilder: (context, index) {
-                final product = _products[index];
-                return ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _buyProduct(product);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor.withOpacity(0.1),
-                    foregroundColor: primaryColor,
-                    elevation: 0,
-                    side: BorderSide(color: primaryColor.withOpacity(0.5)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  child: Text(
-                    product.price,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const Text(
+                  "Choisir un montant",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 24),
+                if (_isProcessing)
+                  const Center(child: Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: CircularProgressIndicator(),
+                  ))
+                else
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 2.2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: _products.length,
+                    itemBuilder: (context, index) {
+                      final product = _products[index];
+                      return ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _buyProduct(product);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor.withOpacity(0.1),
+                          foregroundColor: primaryColor,
+                          elevation: 0,
+                          side: BorderSide(color: primaryColor.withOpacity(0.5)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          product.price,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                const SizedBox(height: 16),
+                Text(
+                  "Merci pour votre soutien ! ❤️",
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              "Merci pour votre soutien ! ❤️",
-              style: TextStyle(color: Colors.grey[500], fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+          );
+        }
       ),
     );
   }
