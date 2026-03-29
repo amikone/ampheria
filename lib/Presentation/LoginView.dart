@@ -40,7 +40,7 @@ class LoginPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Bienvenue 👋',
+                  'Bienvenue',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,

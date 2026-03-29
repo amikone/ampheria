@@ -23,6 +23,7 @@ class _HealthPageState extends State<HealthPage> {
   List<ProductDetails> _products = [];
   bool _iapAvailable = false;
   bool _isProcessing = false;
+  int? _selectedCardId;
 
   static const Set<String> _productIds = {'case0', 'case1', 'case2', 'case3'};
 
@@ -113,7 +114,8 @@ class _HealthPageState extends State<HealthPage> {
           'platform': Platform.isAndroid ? 'android' : 'ios',
           'productId': purchase.productID,
           'token': purchase.verificationData.serverVerificationData,
-          'transactionId': purchase.purchaseID, 
+          'transactionId': purchase.purchaseID,
+          'cardId': _selectedCardId, // <──
         },
       );
 
@@ -123,7 +125,6 @@ class _HealthPageState extends State<HealthPage> {
            ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Merci pour votre don ! ❤️"), backgroundColor: Colors.green),
           );
-           // On force un rechargement pour voir la barre de progression bouger
            setState(() {});
         }
       } else {
@@ -164,12 +165,14 @@ class _HealthPageState extends State<HealthPage> {
     return (cards: cards, collecteActuelle: collecteActuelle);
   }
 
-  void _buyProduct(ProductDetails product) {
-    final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
-    _inAppPurchase.buyConsumable(purchaseParam: purchaseParam);
+  void _buyProduct(ProductDetails product, int cardId) {
+    _selectedCardId = cardId;
+    _inAppPurchase.buyConsumable(
+      purchaseParam: PurchaseParam(productDetails: product),
+    );
   }
 
-  void _showDonationOptions(BuildContext context, Color primaryColor) {
+  void _showDonationOptions(BuildContext context, Color primaryColor, int cardId) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -219,7 +222,7 @@ class _HealthPageState extends State<HealthPage> {
                       return ElevatedButton(
                         onPressed: () {
                           Navigator.pop(context);
-                          _buyProduct(product);
+                          _buyProduct(product, cardId);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor.withOpacity(0.1),
@@ -414,7 +417,7 @@ class _HealthPageState extends State<HealthPage> {
           child: ElevatedButton.icon(
             onPressed: () {
               if (_iapAvailable && _products.isNotEmpty) {
-                _showDonationOptions(context, primaryColor);
+                _showDonationOptions(context, primaryColor, c.id);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Le service de paiement n'est pas disponible pour le moment.")),

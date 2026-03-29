@@ -26,10 +26,16 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Nous utilisons votre position pour vous montrer des profils à proximité.</string>
+
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Nous utilisons votre position pour vous montrer des profils à proximité.</string>
+    <string>We use your location to show you nearby profiles while you are using the app.</string>
+
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>This app does not track your location in the background. This permission is technically required by a third-party library, but your location is only used when the app is open.</string>
+
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>This app does not track your location in the background. This permission is technically required by a third-party library, but your location is only used when the app is open.</string>
+
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -70,5 +76,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
 </dict>
 </plist>
