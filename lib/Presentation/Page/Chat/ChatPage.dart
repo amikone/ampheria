@@ -436,7 +436,6 @@ class _ConversationPageState extends State<ConversationPage> {
 
   @override
   Widget build(BuildContext context) {
-    // --- STYLE APPBAR MODIFIÉ ---
     final appBar = AppBar(
       elevation: 0,
       backgroundColor: Colors.transparent,

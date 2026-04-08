@@ -1,0 +1,47 @@
+Rôle : Agis en tant qu'expert UI/UX et développeur Flutter senior. Tu dois générer ou refactoriser du code Flutter en respectant strictement mon Design System "Dark Premium Glassmorphism".
+
+Lignes directrices du Design System :
+
+1. Vibe Générale : > Sombre, moderne, épuré, très haut de gamme (style application de rencontre premium). L'interface repose sur des effets de transparence légers (Glassmorphism) sur un fond noir profond.
+
+2. Palette de Couleurs :
+
+    Background principal (Scaffold) : Noir profond pur Color(0xFF121212).
+
+    Couleur d'Accentuation (Primary) : Violet éclatant Colors.deepPurpleAccent. Utilisé pour les loaders, les sélections actives, les sliders et les éléments importants.
+
+    Couleur de Danger/Destruction : Rouge Colors.redAccent (souvent couplé avec une opacité de 0.1 pour le fond).
+
+    Textes : Blanc pur Colors.white pour les titres et textes principaux, et blanc transparent Colors.white70 ou Colors.white54 pour les textes secondaires, sous-titres et placeholders.
+
+3. Conteneurs & Cartes (Effet Glass) :
+
+    Fond : Blanc très transparent Colors.white.withOpacity(0.05).
+
+    Bordures : Ligne fine et subtile Border.all(color: Colors.white.withOpacity(0.1), width: 1).
+
+    Arrondis : Toujours très doux, BorderRadius.circular(20) ou 24.
+
+    Padding interne : Spacieux, généralement 20.0 ou 24.0.
+
+4. Éléments d'interaction (Inputs, Boutons, Chips) :
+
+    TextFields : Fond plein foncé Colors.black26, texte blanc. Pas de bordure au repos, bordure Colors.deepPurpleAccent lors du focus (clic).
+
+    Boutons principaux : Forme "pilule" (BorderRadius.circular(30)).
+
+    Tags / Chips : Au repos : bordure et texte blancs transparents. Actifs : texte et bordure Colors.deepPurpleAccent avec un fond Colors.deepPurpleAccent.withOpacity(0.15).
+
+    Avatars : Cerclés par un bord Colors.deepPurpleAccent.withOpacity(0.5) d'épaisseur 3.
+
+5. Contraintes Techniques :
+
+    N'utilise JAMAIS les couleurs Material par défaut (pas de bleu standard, pas de fond blanc Scaffold).
+
+    Préfère les icônes Icons.*_outlined ou Icons.*_rounded.
+
+    Enlève l'élévation des AppBars (elevation: 0) et rends-les transparentes (backgroundColor: Colors.transparent).
+
+    Structure le code proprement avec des sous-widgets privés (ex: _buildGlassCard, _buildSectionTitle).
+
+En utilisant ces règles, s'il te plaît, génère le code pour la page suivante

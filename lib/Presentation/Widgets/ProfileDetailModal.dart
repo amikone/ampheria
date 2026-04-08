@@ -59,9 +59,10 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    return SizedBox(
       height: 400,
-      child: Center(child: CircularProgressIndicator()),
+      child: Center(child: CircularProgressIndicator(color: primaryColor)),
     );
   }
 }
@@ -74,7 +75,8 @@ class _ErrorView extends StatelessWidget {
     return Container(
       height: 400,
       alignment: Alignment.center,
-      child: const Text('Profil introuvable.', style: TextStyle(color: Colors.white)),
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: const Text('Profil introuvable.', style: TextStyle(fontSize: 16)),
     );
   }
 }
@@ -84,41 +86,156 @@ class _ProfileContentView extends StatelessWidget {
 
   const _ProfileContentView({required this.profile});
 
+  Widget _buildSectionTitle(String title, IconData icon, Color primaryColor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        children: [
+          Icon(icon, color: primaryColor),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final interests = List<Map<String, dynamic>>.from(profile['profile_tags'] ?? []);
+    final tags = List<String>.from(profile['tags'] ?? []);
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final cardRadius = 16.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E2C),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           _SliverProfileHeader(profile: profile),
-          SliverList(
-            delegate: SliverChildListDelegate(
-              [
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _ProfileDetails(profile: profile),
-                      const SizedBox(height: 24),
-                      _ProfileBio(bio: profile['bio'] ?? 'Aucune description.'),
-                      if (interests.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        _ProfileInterests(interests: interests),
-                      ],
-                      const SizedBox(height: 40),
-                      Center(
-                        child: TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Fermer', style: TextStyle(color: Colors.white70)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate(
+                [
+                  _ProfileDetailsCard(
+                    profile: profile,
+                    primaryColor: primaryColor,
+                    cardRadius: cardRadius,
+                  ),
+                  const SizedBox(height: 16),
+
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(cardRadius)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle("À propos", Icons.person_outline, primaryColor),
+                          Text(
+                            profile['bio'] ?? 'Aucune description.',
+                            style: const TextStyle(fontSize: 16, height: 1.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  if (tags.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(cardRadius)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle("Intérêts", Icons.favorite_outline, primaryColor),
+                            const SizedBox(height: 8), // Un peu d'air
+                            Wrap(
+                              spacing: 10.0, // Espace horizontal entre les tags
+                              runSpacing: 12.0, // Espace vertical entre les lignes
+                              children: tags.map((tagName) {
+                                // --- LE NOUVEAU DESIGN FANCY DES TAGS ---
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+                                  decoration: BoxDecoration(
+                                    // Dégradé élégant
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        primaryColor.withOpacity(0.7),
+                                        primaryColor,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    // Ombre douce pour faire ressortir la bulle
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: primaryColor.withOpacity(0.3),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Petite icône optionnelle pour le style
+                                      const Icon(
+                                          Icons.tag,
+                                          color: Colors.white70,
+                                          size: 16
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        tagName,
+                                        style: const TextStyle(
+                                          color: Colors.white, // Blanc garanti !
+                                          fontWeight: FontWeight.w600, // Texte un peu plus gras
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+
+                  const SizedBox(height: 32),
+
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Fermer le profil',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.withOpacity(0.1),
+                        foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
         ],
@@ -128,6 +245,83 @@ class _ProfileContentView extends StatelessWidget {
 }
 
 // --- Components ---
+
+class _ProfileDetailsCard extends StatelessWidget {
+  final Map<String, dynamic> profile;
+  final Color primaryColor;
+  final double cardRadius;
+
+  const _ProfileDetailsCard({
+    required this.profile,
+    required this.primaryColor,
+    required this.cardRadius,
+  });
+
+  String _getDisplayGender(String? gender) {
+    switch (gender) {
+      case 'male':
+        return 'Homme';
+      case 'female':
+        return 'Femme';
+      case 'other':
+        return 'Autre';
+      default:
+        return 'Non précisé';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final gender = _getDisplayGender(profile['gender'] as String?);
+    final city = profile['city'] ?? 'Non précisée';
+    final birthDate = profile['birth_date'] != null
+        ? '${(DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor()} ans'
+        : 'Âge inconnu';
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _InfoColumn(icon: Icons.person_outline, value: gender, color: primaryColor),
+            Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.3)),
+            _InfoColumn(icon: Icons.cake_outlined, value: birthDate, color: primaryColor),
+            if (city.isNotEmpty && city != 'Non précisée') ...[
+              Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.3)),
+              _InfoColumn(icon: Icons.location_on_outlined, value: city, color: primaryColor),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoColumn extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final Color color;
+
+  const _InfoColumn({required this.icon, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 28),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+}
 
 class _SliverProfileHeader extends StatefulWidget {
   final Map<String, dynamic> profile;
@@ -173,7 +367,6 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
     }
   }
 
-  // --- Fonction pour afficher la modale de signalement ---
   Future<void> _showReportDialog(BuildContext context, String reportedId) async {
     final textController = TextEditingController();
     bool isSubmitting = false;
@@ -182,28 +375,29 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
       context: context,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setStateDialog) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF2C2C3E),
-              title: const Text('Signaler ce profil', style: TextStyle(color: Colors.white)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: const [
+                  Icon(Icons.flag_outlined, color: Colors.redAccent),
+                  SizedBox(width: 8),
+                  Text('Signaler ce profil'),
+                ],
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Veuillez indiquer la raison de votre signalement :',
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                  const Text('Veuillez indiquer la raison de votre signalement :'),
                   const SizedBox(height: 16),
                   TextField(
                     controller: textController,
-                    style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Faux profil, comportement inapproprié...',
-                      hintStyle: const TextStyle(color: Colors.white38),
                       filled: true,
-                      fillColor: const Color(0xFF1E1E2C),
+                      fillColor: Colors.grey.withOpacity(0.1),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
                     ),
@@ -214,12 +408,13 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
               actions: [
                 TextButton(
                   onPressed: isSubmitting ? null : () => Navigator.pop(context),
-                  child: const Text('Annuler', style: TextStyle(color: Colors.white54)),
+                  child: const Text('Annuler'),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.redAccent,
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: isSubmitting
                       ? null
@@ -227,7 +422,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                     final reason = textController.text.trim();
                     if (reason.isEmpty) return;
 
-                    setState(() => isSubmitting = true);
+                    setStateDialog(() => isSubmitting = true);
 
                     try {
                       final supabase = Supabase.instance.client;
@@ -235,15 +430,12 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
 
                       if (currentUser == null) throw Exception("Utilisateur non connecté");
 
-                      // Remplacement de .insert() par .upsert()
                       await supabase.from('reports').upsert({
                         'reporter_id': currentUser.id,
                         'reported_id': reportedId,
                         'reason': reason,
                         'content_type': 'profile',
-                        // Optionnel: 'updated_at': DateTime.now().toIso8601String(),
                       }, onConflict: 'reporter_id, reported_id');
-                      // onConflict indique à Supabase quelles colonnes vérifier pour savoir si ça existe déjà
 
                       if (context.mounted) {
                         Navigator.pop(context);
@@ -255,7 +447,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                         );
                       }
                     } catch (e) {
-                      setState(() => isSubmitting = false);
+                      setStateDialog(() => isSubmitting = false);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -286,9 +478,8 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
   Widget build(BuildContext context) {
     final photos = List<String>.from(widget.profile['photos'] ?? []);
     final fullName = widget.profile['full_name'] ?? 'Utilisateur';
-
-    // Assure-toi que ton RPC 'get_profile_by_id' renvoie bien l'ID du profil
     final profileId = widget.profile['id'];
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return SliverAppBar(
       expandedHeight: 450.0,
@@ -296,19 +487,24 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
       pinned: true,
       stretch: true,
       automaticallyImplyLeading: false,
-      // --- Ajout du bouton de signalement ici ---
       actions: [
         if (profileId != null)
-          IconButton(
-            icon: const Icon(Icons.flag_outlined, color: Colors.white70),
-            tooltip: 'Signaler ce profil',
-            onPressed: () => _showReportDialog(context, profileId),
+          Container(
+            margin: const EdgeInsets.only(right: 8, top: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.flag_outlined, color: Colors.white),
+              tooltip: 'Signaler ce profil',
+              onPressed: () => _showReportDialog(context, profileId),
+            ),
           ),
       ],
       flexibleSpace: FlexibleSpaceBar(
         stretchModes: const [StretchMode.zoomBackground],
         background: Stack(
-          // ... (Le reste de ton Stack reste exactement le même, aucune modification requise)
           fit: StackFit.expand,
           children: [
             PageView.builder(
@@ -316,22 +512,26 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
               itemCount: photos.isNotEmpty ? photos.length : 1,
               onPageChanged: (index) => setState(() => _currentPhotoIndex = index),
               itemBuilder: (context, index) {
-                final url = photos.isNotEmpty ? photos[index] : "https://via.placeholder.com/400x400?text=No+Photo";
+                final url = photos.isNotEmpty
+                    ? photos[index]
+                    : "https://via.placeholder.com/400x400?text=No+Photo";
                 return Image.network(url, fit: BoxFit.cover);
               },
             ),
 
+            // Ombre portée pour garantir la lisibilité du texte
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.black45, Colors.transparent, Colors.black],
-                  stops: [0.0, 0.4, 1.0], // J'ai ajouté une légère ombre en haut pour que l'icône de flag soit visible
+                  colors: [Colors.black45, Colors.transparent, Colors.black87],
+                  stops: [0.0, 0.4, 1.0],
                 ),
               ),
             ),
 
+            // Zones cliquables pour naviguer dans les photos
             Row(
               children: [
                 Expanded(
@@ -350,7 +550,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
             ),
 
             Positioned(
-              bottom: 16,
+              bottom: 24,
               left: 24,
               right: 24,
               child: Column(
@@ -362,11 +562,10 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                       color: Colors.white,
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
-                      shadows: [Shadow(blurRadius: 8)],
                     ),
                   ),
                   if (photos.length > 1) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(photos.length, (index) {
@@ -377,7 +576,9 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),
-                            color: Colors.white.withOpacity(_currentPhotoIndex == index ? 0.9 : 0.4),
+                            color: _currentPhotoIndex == index
+                                ? primaryColor
+                                : Colors.white.withOpacity(0.5),
                           ),
                         );
                       }),
@@ -389,119 +590,6 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
           ],
         ),
       ),
-    );
-  }
-}
-
-String _getDisplayGender(String? gender) {
-  switch (gender) {
-    case 'male':
-      return 'Homme';
-    case 'female':
-      return 'Femme';
-    case 'other':
-      return 'Autre';
-    default:
-      return 'Non précisé';
-  }
-}
-
-class _ProfileDetails extends StatelessWidget {
-  final Map<String, dynamic> profile;
-
-  const _ProfileDetails({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    final gender = _getDisplayGender(profile['gender'] as String?);
-    final city = profile['city'] ?? 'Non précisée';
-    final birthDate = profile['birth_date'] != null
-        ? '${(DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor()} ans'
-        : 'Âge non précisé';
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _InfoTile(icon: Icons.person_outline, value: gender),
-        _InfoTile(icon: Icons.cake_outlined, value: birthDate),
-        if (city.isNotEmpty) _InfoTile(icon: Icons.location_on_outlined, value: city),
-      ],
-    );
-  }
-}
-
-class _InfoTile extends StatelessWidget {
-  final IconData icon;
-  final String value;
-
-  const _InfoTile({required this.icon, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white70, size: 24),
-        const SizedBox(height: 8),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 16)),
-      ],
-    );
-  }
-}
-
-class _ProfileBio extends StatelessWidget {
-  final String bio;
-
-  const _ProfileBio({required this.bio});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'À propos',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          bio,
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16, height: 1.5),
-        ),
-      ],
-    );
-  }
-}
-
-class _ProfileInterests extends StatelessWidget {
-  final List<Map<String, dynamic>> interests;
-
-  const _ProfileInterests({required this.interests});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Intérêts',
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12.0,
-          runSpacing: 12.0,
-          children: interests
-              .map((interest) {
-                    final tagName = interest['tags']?['name'] ?? 'N/A';
-                    return Chip(
-                      label: Text(tagName),
-                      backgroundColor: const Color(0xFF2C2C3E),
-                      labelStyle: const TextStyle(color: Colors.white),
-                    );
-                  })
-              .toList(),
-        ),
-      ],
     );
   }
 }

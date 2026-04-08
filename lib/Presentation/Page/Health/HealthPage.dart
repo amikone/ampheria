@@ -56,7 +56,7 @@ class _HealthPageState extends State<HealthPage> {
       }
 
       final ProductDetailsResponse response = await _inAppPurchase.queryProductDetails(_productIds);
-      
+
       if (response.error != null) {
         debugPrint("IAP_LOG: Error querying products: ${response.error!.message}");
       }
@@ -87,16 +87,16 @@ class _HealthPageState extends State<HealthPage> {
           setState(() => _isProcessing = false);
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
-          
+
           await _verifyPurchaseOnServer(purchaseDetails);
-          
+
           if (Platform.isAndroid) {
-             final InAppPurchaseAndroidPlatformAddition androidAddition =
-                _inAppPurchase.getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
-             await androidAddition.consumePurchase(purchaseDetails);
+            final InAppPurchaseAndroidPlatformAddition androidAddition =
+            _inAppPurchase.getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+            await androidAddition.consumePurchase(purchaseDetails);
           }
         }
-        
+
         if (purchaseDetails.pendingCompletePurchase) {
           await _inAppPurchase.completePurchase(purchaseDetails);
         }
@@ -115,17 +115,17 @@ class _HealthPageState extends State<HealthPage> {
           'productId': purchase.productID,
           'token': purchase.verificationData.serverVerificationData,
           'transactionId': purchase.purchaseID,
-          'cardId': _selectedCardId, // <──
+          'cardId': _selectedCardId,
         },
       );
 
       if (response.status == 200) {
         debugPrint("IAP_LOG: Purchase verified and recorded by server!");
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Merci pour votre don ! ❤️"), backgroundColor: Colors.green),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Merci pour votre don ! ❤️", style: TextStyle(color: Colors.white)), backgroundColor: Colors.green),
           );
-           setState(() {});
+          setState(() {});
         }
       } else {
         debugPrint("IAP_LOG: Server verification failed with status: ${response.status}");
@@ -172,122 +172,140 @@ class _HealthPageState extends State<HealthPage> {
     );
   }
 
-  void _showDonationOptions(BuildContext context, Color primaryColor, int cardId) {
+  void _showDonationOptions(BuildContext context, int cardId) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[600],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const Text(
-                  "Choisir un montant",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 24),
-                if (_isProcessing)
-                  const Center(child: Padding(
-                    padding: EdgeInsets.all(20.0),
-                    child: CircularProgressIndicator(),
-                  ))
-                else
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 2.2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E), // Fond sombre premium pour la bottom sheet
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white38,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    itemCount: _products.length,
-                    itemBuilder: (context, index) {
-                      final product = _products[index];
-                      return ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _buyProduct(product, cardId);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryColor.withOpacity(0.1),
-                          foregroundColor: primaryColor,
-                          elevation: 0,
-                          side: BorderSide(color: primaryColor.withOpacity(0.5)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(
-                          product.price,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
-                      );
-                    },
                   ),
-                const SizedBox(height: 16),
-                Text(
-                  "Merci pour votre soutien ! ❤️",
-                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          );
-        }
+                  const Text(
+                    "Choisir un montant",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_isProcessing)
+                    const Center(child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(color: Colors.deepPurpleAccent),
+                    ))
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 2.2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: _products.length,
+                      itemBuilder: (context, index) {
+                        final product = _products[index];
+                        return ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _buyProduct(product, cardId);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurpleAccent.withOpacity(0.15),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            side: const BorderSide(color: Colors.deepPurpleAccent),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: Text(
+                            product.price,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          ),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "Merci pour votre soutien ! ❤️",
+                    style: TextStyle(color: Colors.white54, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          }
       ),
+    );
+  }
+
+  // ==========================================
+  // UI SECTIONS (Style "Premium Dark Glassmorphism")
+  // ==========================================
+
+  Widget _buildGlassCard({required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      padding: const EdgeInsets.all(24.0),
+      child: child,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-
     return Scaffold(
+      backgroundColor: const Color(0xFF121212), // Fond noir profond
       appBar: AppBar(
         title: const Text(
           'Soutenir Amikone ❤️',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: FutureBuilder<({List<DonationCardModel> cards, double? collecteActuelle})>(
         future: _load(),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: primaryColor));
+            return const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent));
           }
           if (snap.hasError) {
-            return Center(child: Text('Erreur: ${snap.error}'));
+            return Center(child: Text('Erreur: ${snap.error}', style: const TextStyle(color: Colors.redAccent)));
           }
           final cards = snap.data!.cards;
           final collecteActuelle = snap.data!.collecteActuelle;
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (final c in cards) ...[
-                  _buildCard(context, c, collecteActuelle, primaryColor),
+                  _buildCard(context, c, collecteActuelle),
                   const SizedBox(height: 16),
                 ],
+                const SizedBox(height: 40), // Espace en bas pour respirer
               ],
             ),
           );
@@ -296,50 +314,45 @@ class _HealthPageState extends State<HealthPage> {
     );
   }
 
-  Widget _buildCard(BuildContext context, DonationCardModel c, double? collecteActuelle, Color primaryColor) {
+  Widget _buildCard(BuildContext context, DonationCardModel c, double? collecteActuelle) {
     switch (c.kind) {
       case 'info':
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(iconFromName(c.icon), color: primaryColor, size: 28),
+        return _buildGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurpleAccent.withOpacity(0.15),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        c.title ?? '',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
+                    child: Icon(iconFromName(c.icon), color: Colors.deepPurpleAccent, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      c.title ?? '',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
-                  ],
-                ),
-                if ((c.body ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    c.body!,
-                    style: TextStyle(
-                      fontSize: 16,
-                      height: 1.5,
-                      color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.9),
-                    ),
-                    textAlign: TextAlign.justify,
                   ),
                 ],
+              ),
+              if ((c.body ?? '').isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  c.body!,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    color: Colors.white70, // Texte secondaire
+                  ),
+                  textAlign: TextAlign.justify,
+                ),
               ],
-            ),
+            ],
           ),
         );
 
@@ -348,66 +361,62 @@ class _HealthPageState extends State<HealthPage> {
         final actuel = c.actuel ?? collecteActuelle ?? 0.0;
         final progression = objectif > 0 ? (actuel / objectif).clamp(0, 1).toDouble() : 0.0;
 
-        return Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(iconFromName(c.icon), color: primaryColor, size: 28),
+        return _buildGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurpleAccent.withOpacity(0.15),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        c.title ?? 'Objectif',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Collectés', style: TextStyle(fontSize: 14, color: Theme.of(context).hintColor)),
-                        Text(
-                          '${actuel.toStringAsFixed(0)} €',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryColor),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      'Objectif : ${objectif.toStringAsFixed(0)} €',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: LinearProgressIndicator(
-                    value: progression,
-                    backgroundColor: primaryColor.withOpacity(0.15),
-                    color: primaryColor,
-                    minHeight: 12,
+                    child: Icon(iconFromName(c.icon), color: Colors.deepPurpleAccent, size: 28),
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      c.title ?? 'Objectif',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Collectés', style: TextStyle(fontSize: 14, color: Colors.white54)),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${actuel.toStringAsFixed(0)} €',
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.deepPurpleAccent),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'Objectif : ${objectif.toStringAsFixed(0)} €',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: LinearProgressIndicator(
+                  value: progression,
+                  backgroundColor: Colors.white.withOpacity(0.05), // Fond très subtil
+                  color: Colors.deepPurpleAccent,
+                  minHeight: 12,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
 
@@ -417,10 +426,13 @@ class _HealthPageState extends State<HealthPage> {
           child: ElevatedButton.icon(
             onPressed: () {
               if (_iapAvailable && _products.isNotEmpty) {
-                _showDonationOptions(context, primaryColor, c.id);
+                _showDonationOptions(context, c.id);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Le service de paiement n'est pas disponible pour le moment.")),
+                  const SnackBar(
+                    content: Text("Le service de paiement n'est pas disponible pour le moment.", style: TextStyle(color: Colors.white)),
+                    backgroundColor: Colors.redAccent,
+                  ),
                 );
               }
             },
@@ -430,12 +442,13 @@ class _HealthPageState extends State<HealthPage> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
+              backgroundColor: Colors.deepPurpleAccent, // Bouton principal en violet pur
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-              minimumSize: const Size(double.infinity, 56),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 4,
+              minimumSize: const Size(double.infinity, 60), // Bouton légèrement plus grand
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), // Forme pilule
+              elevation: 8,
+              shadowColor: Colors.deepPurpleAccent.withOpacity(0.5), // Ombre portée lumineuse
             ),
           ),
         );
