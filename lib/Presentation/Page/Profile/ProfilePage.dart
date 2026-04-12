@@ -5,6 +5,9 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../Services/ReferenceDataService.dart';
+import '../../Widgets/OrientationSelector.dart';
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -21,6 +24,8 @@ class _ProfilePageState extends State<ProfilePage> {
   String _name = '';
   List<String> _photos = [];
 
+  String? _myGender;
+  String? _myOrientation;
   List<String> _interestedIn = [];
   double _minAge = 18;
   double _maxAge = 35;
@@ -67,15 +72,17 @@ class _ProfilePageState extends State<ProfilePage> {
 
     final response = await supabase
         .from('profiles')
-        .select('bio, full_name, photos')
+        .select('bio, full_name, photos, gender, orientation')
         .eq('id', user.id)
         .maybeSingle();
 
     if (mounted && response != null) {
       setState(() {
-        _bio = response['bio'] ?? '';
-        _name = response['full_name'] ?? '';
-        _photos = List<String>.from(response['photos'] ?? []);
+        _bio         = response['bio'] ?? '';
+        _name        = response['full_name'] ?? '';
+        _photos      = List<String>.from(response['photos'] ?? []);
+        _myGender    = response['gender'];
+        _myOrientation = response['orientation'];
       });
     }
   }
@@ -84,11 +91,11 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_loading) return;
     final user = supabase.auth.currentUser;
     if (user == null) return;
-
     await supabase.from('profiles').update({
-      'bio': _bio,
-      'photos': _photos,
-      'updated_at': DateTime.now().toIso8601String(),
+      'bio':         _bio,
+      'photos':      _photos,
+      'orientation': _myOrientation,
+      'updated_at':  DateTime.now().toIso8601String(),
     }).eq('id', user.id);
   }
 
@@ -671,6 +678,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+
+
+
+
+
+
+// Nouvelle section préférences complète
   Widget _buildPreferencesSection() {
     return _buildGlassCard(
       child: Column(
@@ -678,43 +692,137 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           _buildSectionTitle("Préférences de rencontre", Icons.tune),
 
-          const Text("Genre(s) recherché(s)", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            children: ['male', 'female', 'other'].map((gender) {
-              final isSelected = _interestedIn.contains(gender);
-              String displayText = gender == 'male' ? 'Homme' : (gender == 'female' ? 'Femme' : 'Autre');
-              return FilterChip(
-                label: Text(
-                    displayText,
-                    style: TextStyle(color: isSelected ? Colors.white : Colors.white70, fontWeight: FontWeight.bold)
-                ),
-                selected: isSelected,
-                selectedColor: Colors.deepPurpleAccent.withOpacity(0.3), // Violet pour la sélection
-                checkmarkColor: Colors.deepPurpleAccent, // Icône check en violet
-                backgroundColor: Colors.white.withOpacity(0.05),
-                side: BorderSide(color: isSelected ? Colors.deepPurpleAccent : Colors.white.withOpacity(0.2)),
-                onSelected: (selected) {
-                  setState(() {
-                    selected ? _interestedIn.add(gender) : _interestedIn.remove(gender);
-                    _onPreferencesChanged();
-                  });
-                },
-              );
-            }).toList(),
+          // --- MON ORIENTATION (affichage profil) ---
+          const Text(
+            'Mon orientation sexuelle',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              fontSize: 14,
+            ),
           ),
+          const SizedBox(height: 4),
+          const Text(
+            'Affiché sur ton profil public',
+            style: TextStyle(color: Colors.white38, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+
+          OrientationSelector(
+            selectedOrientation: _myOrientation,
+            onChanged: (value) async {
+              setState(() => _myOrientation = value);
+              _onProfileChanged();
+
+              // Auto-suggestion de interested_in
+              if (value != null && _myGender != null) {
+                final allGenders =
+                await ReferenceDataService.fetchGenders();
+                final suggested =
+                ReferenceDataService.suggestInterestedIn(
+                  orientation: value,
+                  myGender: _myGender!,
+                  allGenders: allGenders,
+                );
+                if (suggested.isNotEmpty && mounted) {
+                  _showSuggestionBanner(suggested);
+                }
+              }
+            },
+          ),
+
           const Divider(height: 40, color: Colors.white24),
 
+          // --- JE VEUX RENCONTRER (algorithme) ---
+          const Text(
+            'Je souhaite rencontrer',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Utilisé par l\'algorithme pour te montrer des profils',
+            style: TextStyle(color: Colors.white38, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+
+          FutureBuilder<List<String>>(
+            future: ReferenceDataService.fetchGenders(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.deepPurpleAccent,
+                    strokeWidth: 2,
+                  ),
+                );
+              }
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: snapshot.data!.map((gender) {
+                  final isSelected = _interestedIn.contains(gender);
+                  return FilterChip(
+                    label: Text(
+                      gender,
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : Colors.white70,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    selected: isSelected,
+                    selectedColor:
+                    Colors.deepPurpleAccent.withOpacity(0.3),
+                    checkmarkColor: Colors.deepPurpleAccent,
+                    backgroundColor: Colors.white.withOpacity(0.05),
+                    side: BorderSide(
+                      color: isSelected
+                          ? Colors.deepPurpleAccent
+                          : Colors.white.withOpacity(0.2),
+                    ),
+                    onSelected: (selected) {
+                      setState(() {
+                        selected
+                            ? _interestedIn.add(gender)
+                            : _interestedIn.remove(gender);
+                      });
+                      _onPreferencesChanged();
+                    },
+                  );
+                }).toList(),
+              );
+            },
+          ),
+
+          const Divider(height: 40, color: Colors.white24),
+
+          // --- ÂGE ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Tranche d'âge", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-              Text("${_minAge.round()} - ${_maxAge.round()} ans", style: const TextStyle(color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold)),
+              const Text(
+                "Tranche d'âge",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                "${_minAge.round()} - ${_maxAge.round()} ans",
+                style: const TextStyle(
+                  color: Colors.deepPurpleAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           RangeSlider(
-            activeColor: Colors.deepPurpleAccent, // Sliders en violet
+            activeColor: Colors.deepPurpleAccent,
             inactiveColor: Colors.deepPurpleAccent.withOpacity(0.2),
             min: 18,
             max: 99,
@@ -726,24 +834,83 @@ class _ProfilePageState extends State<ProfilePage> {
             }),
             onChangeEnd: (_) => _onPreferencesChanged(),
           ),
+
           const Divider(height: 40, color: Colors.white24),
 
+          // --- DISTANCE ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Distance maximale", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-              Text("${_maxDistance.round()} km", style: const TextStyle(color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold)),
+              const Text(
+                "Distance maximale",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                "${_maxDistance.round()} km",
+                style: const TextStyle(
+                  color: Colors.deepPurpleAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           Slider(
-            activeColor: Colors.deepPurpleAccent, // Sliders en violet
+            activeColor: Colors.deepPurpleAccent,
             inactiveColor: Colors.deepPurpleAccent.withOpacity(0.2),
             min: 1,
             max: 200,
             divisions: 199,
             value: _maxDistance,
-            onChanged: (value) => setState(() => _maxDistance = value),
+            onChanged: (value) =>
+                setState(() => _maxDistance = value),
             onChangeEnd: (_) => _onPreferencesChanged(),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Banner de suggestion non-invasive
+  void _showSuggestionBanner(List<String> suggested) {
+    ScaffoldMessenger.of(context).showMaterialBanner(
+      MaterialBanner(
+        backgroundColor: const Color(0xFF1E1B2E),
+        content: Text(
+          'Appliquer la suggestion : ${suggested.join(', ')} ?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        leading: const Icon(
+          Icons.auto_awesome,
+          color: Colors.deepPurpleAccent,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context)
+                  .hideCurrentMaterialBanner();
+            },
+            child: const Text(
+              'Ignorer',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() => _interestedIn = suggested);
+              _onPreferencesChanged();
+              ScaffoldMessenger.of(context)
+                  .hideCurrentMaterialBanner();
+            },
+            child: const Text(
+              'Appliquer',
+              style: TextStyle(
+                color: Colors.deepPurpleAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

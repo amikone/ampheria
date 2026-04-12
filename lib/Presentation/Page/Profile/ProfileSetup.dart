@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../Widgets/GenderSelector.dart';
 
 class ProfileSetupPage extends StatefulWidget {
   const ProfileSetupPage({super.key});
@@ -9,240 +10,630 @@ class ProfileSetupPage extends StatefulWidget {
 }
 
 class _ProfileSetupPageState extends State<ProfileSetupPage> {
-  final _formKey = GlobalKey<FormState>();
+  final PageController _pageController = PageController();
+  int _currentStep = 0;
+  final int _totalSteps = 4;
+  bool _loading = false;
+
   final _fullNameController = TextEditingController();
   final _birthDateController = TextEditingController();
   final _cityController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _otpController = TextEditingController();
+
   String? _selectedGender;
-  bool _loading = false;
-  bool _otpSent = false;
-  bool _phoneVerified = false;
-  bool _canSubmit = false;
 
   final supabase = Supabase.instance.client;
 
   @override
-  void initState() {
-    super.initState();
-    final user = supabase.auth.currentUser;
-    if (user != null && user.phone != null && user.phoneConfirmedAt != null) {
-      _phoneController.text = user.phone!;
-      _phoneVerified = true;
-    }
-
-    _fullNameController.addListener(_updateSubmitButtonState);
-    _birthDateController.addListener(_updateSubmitButtonState);
-    _cityController.addListener(_updateSubmitButtonState);
-    _phoneController.addListener(_updateSubmitButtonState);
-
-    _updateSubmitButtonState();
-  }
-
-  @override
   void dispose() {
-    _fullNameController.removeListener(_updateSubmitButtonState);
-    _birthDateController.removeListener(_updateSubmitButtonState);
-    _cityController.removeListener(_updateSubmitButtonState);
-    _phoneController.removeListener(_updateSubmitButtonState);
-
+    _pageController.dispose();
     _fullNameController.dispose();
     _birthDateController.dispose();
     _cityController.dispose();
     _phoneController.dispose();
-    _otpController.dispose();
     super.dispose();
   }
 
-  void _updateSubmitButtonState() {
-    final allFieldsFilled = _fullNameController.text.isNotEmpty &&
-        _birthDateController.text.isNotEmpty &&
-        _selectedGender != null &&
-        _cityController.text.isNotEmpty ;
-        //&& _phoneController.text.isNotEmpty;
-    setState(() {
-      _canSubmit = allFieldsFilled ;//&& _phoneVerified;
-    });
+  bool _canGoToNextStep() {
+    switch (_currentStep) {
+      case 0:
+        return _fullNameController.text.trim().isNotEmpty;
+      case 1:
+        return _birthDateController.text.isNotEmpty && _selectedGender != null;
+      case 2:
+        return _cityController.text.trim().isNotEmpty;
+      case 3:
+        return true;
+      default:
+        return false;
+    }
   }
 
-  Future<void> _sendOtp() async {
-    final phone = _phoneController.text.trim();
-
-    if (phone.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Veuillez entrer un numéro.')));
+  void _nextStep() {
+    if (!_canGoToNextStep()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text(
+            'Veuillez remplir les champs requis pour continuer.',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
       return;
     }
-
-    try {
-      await supabase.auth.signInWithOtp(phone: phone);
-      setState(() => _otpSent = true);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Code envoyé par SMS.')));
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    if (_currentStep < _totalSteps - 1) {
+      FocusScope.of(context).unfocus();
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _submit();
     }
   }
 
-  Future<void> _verifyOtp() async {
-    final phone = _phoneController.text.trim();
-    final token = _otpController.text.trim();
-
-    if (token.isEmpty) return;
-
-    try {
-      final response = await supabase.auth.verifyOTP(
-        type: OtpType.sms,
-        token: token,
-        phone: phone,
+  void _previousStep() {
+    if (_currentStep > 0) {
+      FocusScope.of(context).unfocus();
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
       );
-
-      if (response.session != null) {
-        setState(() {
-          _phoneVerified = true;
-        });
-        _updateSubmitButtonState();
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Numéro vérifié ✅')));
-      } else {
-        throw Exception('La vérification OTP a échoué.');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Code incorrect ❌: $e')));
     }
   }
 
   Future<void> _submit() async {
-    if (_formKey.currentState?.validate() != true) return;
-
-    /*if (!_phoneVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez vérifier votre numéro avant de continuer.')),
-      );
-      return;
-    }*/
-
     setState(() => _loading = true);
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId != null) {
 
-    final userId = supabase.auth.currentUser?.id;
-    await supabase.from('profiles').update({
-      'full_name': _fullNameController.text,
-      'birth_date': _birthDateController.text,
-      'gender': _selectedGender,
-      'city': _cityController.text,
-    }).eq('id', userId!);
+        // 1. Mise à jour du profil (ta table)
+        await supabase.from('profiles').update({
+          'full_name': _fullNameController.text.trim(),
+          'birth_date': _birthDateController.text,
+          'gender': _selectedGender,
+          'city': _cityController.text.trim(),
+        }).eq('id', userId);
 
-    setState(() => _loading = false);
+        // 2. Mise à jour du téléphone dans auth.users (si renseigné)
+        if (_phoneController.text.trim().isNotEmpty) {
+          await supabase.auth.updateUser(
+            UserAttributes(phone: _phoneController.text.trim()),
+          );
+        }
 
-    if (!mounted) return;
-    Navigator.pop(context);
+        if (!mounted) return;
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text('Erreur de sauvegarde: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  // --- DESIGN SYSTEM ---
+
+  Widget _buildGlassCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildGlassTextField({
+    required TextEditingController controller,
+    required String hintText,
+    IconData? icon,
+    TextInputType keyboardType = TextInputType.text,
+    bool readOnly = false,
+    VoidCallback? onTap,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      readOnly: readOnly,
+      onTap: onTap,
+      style: const TextStyle(color: Colors.white),
+      onChanged: (_) => setState(() {}),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: icon != null ? Icon(icon, color: Colors.white54) : null,
+        filled: true,
+        fillColor: Colors.black26,
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide:
+          const BorderSide(color: Colors.deepPurpleAccent, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, String subtitle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          style: const TextStyle(color: Colors.white54, fontSize: 14),
+        ),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  // --- ÉTAPES ---
+
+  Widget _buildStep1Name() {
+    return SingleChildScrollView(
+      child: _buildGlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle(
+              'Faisons connaissance',
+              'Comment doit-on vous appeler ?',
+            ),
+            _buildGlassTextField(
+              controller: _fullNameController,
+              hintText: 'Votre prénom',
+              icon: Icons.person_outline_rounded,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep2Details() {
+    return SingleChildScrollView(
+      child: _buildGlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle(
+              'Un peu plus sur vous',
+              'Il faut avoir au moins 18 ans pour s\'inscrire.',
+            ),
+            _buildGlassTextField(
+              controller: _birthDateController,
+              hintText: 'Date de naissance',
+              icon: Icons.calendar_today_outlined,
+              readOnly: true,
+              onTap: () async {
+                final DateTime today = DateTime.now();
+                final DateTime eighteenYearsAgo = DateTime(
+                  today.year - 18,
+                  today.month,
+                  today.day,
+                );
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: eighteenYearsAgo,
+                  firstDate: DateTime(1900),
+                  lastDate: eighteenYearsAgo,
+                  builder: (context, child) {
+                    return Theme(
+                      data: ThemeData.dark().copyWith(
+                        colorScheme: const ColorScheme.dark(
+                          primary: Colors.deepPurpleAccent,
+                          onPrimary: Colors.white,
+                          surface: Color(0xFF1E1E1E),
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (picked != null) {
+                  setState(() {
+                    _birthDateController.text =
+                        picked.toIso8601String().substring(0, 10);
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Votre genre',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            GenderSelector(
+              selectedGender: _selectedGender,
+              onChanged: (value) {
+                setState(() => _selectedGender = value);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep3City() {
+    return SingleChildScrollView(
+      child: _buildGlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle(
+              'Où êtes-vous ?',
+              'Pour rencontrer des personnes autour de vous.',
+            ),
+            _buildGlassTextField(
+              controller: _cityController,
+              hintText: 'Votre ville',
+              icon: Icons.location_on_outlined,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep4Phone() {
+    return SingleChildScrollView(
+      child: _buildGlassCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle(
+              'Votre numéro',
+              'Optionnel — vous pourrez le renseigner plus tard.',
+            ),
+
+            // Sélecteur indicatif + champ numéro
+            _PhoneInputField(
+              onChanged: (fullNumber) {
+                _phoneController.text = fullNumber;
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Complétez votre profil')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _fullNameController,
-                decoration: const InputDecoration(labelText: 'Prénom'),
-                validator: (v) =>
-                (v == null || v.isEmpty) ? 'Le prénom est requis' : null,
+      backgroundColor: const Color(0xFF121212),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: _currentStep > 0
+            ? IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white,
+          ),
+          onPressed: _previousStep,
+        )
+            : null,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(_totalSteps, (index) {
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              height: 6,
+              width: _currentStep == index ? 24 : 8,
+              decoration: BoxDecoration(
+                color: _currentStep >= index
+                    ? Colors.deepPurpleAccent
+                    : Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
               ),
-              TextFormField(
-                controller: _birthDateController,
-                readOnly: true,
-                decoration:
-                const InputDecoration(labelText: 'Date de naissance'),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime(DateTime.now().year - 22),
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime.now(),
-                  );
-                  if (picked != null) {
-                    _birthDateController.text =
-                        picked.toIso8601String().substring(0, 10);
-                  }
-                },
-                validator: (v) =>
-                (v == null || v.isEmpty) ? 'La date de naissance est requise' : null,
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedGender,
-                items: const [
-                  DropdownMenuItem(value: 'male', child: Text('Homme')),
-                  DropdownMenuItem(value: 'female', child: Text('Femme')),
-                  DropdownMenuItem(value: 'other', child: Text('Autre')),
-                ],
-                decoration: const InputDecoration(labelText: 'Genre'),
-                onChanged: (v) {
-                  setState(() => _selectedGender = v);
-                  _updateSubmitButtonState();
-                },
-                validator: (v) => (v == null) ? 'Genre requis' : null,
-              ),
-               TextFormField(
-                controller: _cityController,
-                decoration: const InputDecoration(labelText: 'Ville'),
-                validator: (v) =>
-                (v == null || v.isEmpty) ? 'La ville est requise' : null,
-              ),
-              /*
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                    labelText: 'Numéro de téléphone (ex: +336...)'),
-                validator: (v) =>
-                (v == null || v.isEmpty) ? 'Le téléphone est requis' : null,
-                readOnly: _phoneVerified,
-              ),
-              if (!_phoneVerified)
-                Row(
+            );
+          }),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 16.0,
+                ),
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (index) =>
+                      setState(() => _currentStep = index),
                   children: [
-                    ElevatedButton(
-                      onPressed: _otpSent ? null : _sendOtp,
-                      child: const Text('Envoyer le code'),
+                    _buildStep1Name(),
+                    _buildStep2Details(),
+                    _buildStep3City(),
+                    _buildStep4Phone(),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _nextStep,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _canGoToNextStep()
+                        ? Colors.deepPurpleAccent
+                        : Colors.white.withOpacity(0.1),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.white.withOpacity(0.05),
+                    disabledForegroundColor: Colors.white54,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    const SizedBox(width: 12),
-                    if (_otpSent)
-                      Expanded(
-                        child: TextField(
-                          controller: _otpController,
-                          keyboardType: TextInputType.number,
-                          decoration:
-                          const InputDecoration(labelText: 'Code reçu'),
+                    elevation: 0,
+                  ),
+                  child: _loading
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                      : Text(
+                    _currentStep == _totalSteps - 1
+                        ? 'Terminer'
+                        : 'Continuer',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class _PhoneInputField extends StatefulWidget {
+  final ValueChanged<String> onChanged;
+
+  const _PhoneInputField({required this.onChanged});
+
+  @override
+  State<_PhoneInputField> createState() => _PhoneInputFieldState();
+}
+
+class _PhoneInputFieldState extends State<_PhoneInputField> {
+  final _numberController = TextEditingController();
+
+  // Indicatifs les plus courants en premier
+  final List<Map<String, String>> _countries = [
+    {'flag': '🇫🇷', 'name': 'France',       'code': '+33'},
+    {'flag': '🇧🇪', 'name': 'Belgique',     'code': '+32'},
+    {'flag': '🇨🇭', 'name': 'Suisse',       'code': '+41'},
+    {'flag': '🇱🇺', 'name': 'Luxembourg',   'code': '+352'},
+    {'flag': '🇨🇦', 'name': 'Canada',       'code': '+1'},
+    {'flag': '🇺🇸', 'name': 'États-Unis',   'code': '+1'},
+    {'flag': '🇬🇧', 'name': 'Royaume-Uni',  'code': '+44'},
+    {'flag': '🇩🇪', 'name': 'Allemagne',    'code': '+49'},
+    {'flag': '🇪🇸', 'name': 'Espagne',      'code': '+34'},
+    {'flag': '🇮🇹', 'name': 'Italie',       'code': '+39'},
+    {'flag': '🇵🇹', 'name': 'Portugal',     'code': '+351'},
+    {'flag': '🇲🇦', 'name': 'Maroc',        'code': '+212'},
+    {'flag': '🇩🇿', 'name': 'Algérie',      'code': '+213'},
+    {'flag': '🇹🇳', 'name': 'Tunisie',      'code': '+216'},
+  ];
+
+  late Map<String, String> _selectedCountry;
+
+  @override
+  void initState() {
+    super.initState();
+    // France par défaut
+    _selectedCountry = _countries.first;
+  }
+
+  @override
+  void dispose() {
+    _numberController.dispose();
+    super.dispose();
+  }
+
+  /// Formate le numéro local → international
+  /// Ex: "0652619066" → "+33652619066"
+  /// Ex: "652619066"  → "+33652619066"
+  String _buildFullNumber(String localNumber) {
+    final code = _selectedCountry['code']!;
+    String digits = localNumber.replaceAll(RegExp(r'\D'), ''); // chiffres only
+
+    // Supprime le 0 initial si présent (format FR: 06... → 6...)
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+
+    return '$code$digits';
+  }
+
+  void _notify() {
+    final full = _buildFullNumber(_numberController.text);
+    widget.onChanged(full);
+  }
+
+  void _showCountryPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return ListView.builder(
+          itemCount: _countries.length,
+          itemBuilder: (context, index) {
+            final country = _countries[index];
+            final isSelected = country['code'] == _selectedCountry['code'] &&
+                country['name'] == _selectedCountry['name'];
+            return ListTile(
+              leading: Text(
+                country['flag']!,
+                style: const TextStyle(fontSize: 24),
+              ),
+              title: Text(
+                country['name']!,
+                style: const TextStyle(color: Colors.white),
+              ),
+              trailing: Text(
+                country['code']!,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              tileColor: isSelected
+                  ? Colors.deepPurpleAccent.withOpacity(0.15)
+                  : Colors.transparent,
+              onTap: () {
+                setState(() => _selectedCountry = country);
+                _notify();
+                Navigator.pop(context);
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.black26,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              // Bouton indicatif
+              GestureDetector(
+                onTap: _showCountryPicker,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 18,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      right: BorderSide(
+                        color: Colors.white.withOpacity(0.1),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _selectedCountry['flag']!,
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _selectedCountry['code']!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
                       ),
-                    if (_otpSent)
-                      IconButton(
-                        onPressed: _verifyOtp,
-                        icon: const Icon(Icons.check),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white54,
+                        size: 18,
                       ),
-                  ],
-                ),*/
-              const Spacer(),
-              ElevatedButton(
-                onPressed: (_canSubmit && !_loading) ? _submit : null,
-                child: _loading
-                    ? const CircularProgressIndicator()
-                    : const Text('Valider'),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Champ numéro local
+              Expanded(
+                child: TextField(
+                  controller: _numberController,
+                  keyboardType: TextInputType.phone,
+                  style: const TextStyle(color: Colors.white),
+                  onChanged: (_) => _notify(),
+                  decoration: const InputDecoration(
+                    hintText: '06 52 61 90 66',
+                    hintStyle: TextStyle(color: Colors.white38),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 18,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
         ),
-      ),
+
+        // Aperçu du numéro formaté
+        if (_numberController.text.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              'Format enregistré : ${_buildFullNumber(_numberController.text)}',
+              style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
