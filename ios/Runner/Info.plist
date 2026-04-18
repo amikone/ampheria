@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Ampheria</string>
+	<string>Amikone</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>ampheria</string>
+	<string>amikone</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -24,18 +24,16 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app does not track your location in the background. This permission is technically required by a third-party library, but your location is only used when the app is open.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app does not track your location in the background. This permission is technically required by a third-party library, but your location is only used when the app is open.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-    <string>We use your location to show you nearby profiles while you are using the app.</string>
-
-    <key>NSLocationAlwaysUsageDescription</key>
-    <string>This app does not track your location in the background. This permission is technically required by a third-party library, but your location is only used when the app is open.</string>
-
-    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>This app does not track your location in the background. This permission is technically required by a third-party library, but your location is only used when the app is open.</string>
-
+	<string>We use your location to show you nearby profiles while you are using the app.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -76,8 +74,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-
-	<key>ITSAppUsesNonExemptEncryption</key>
-    <false/>
 </dict>
 </plist>

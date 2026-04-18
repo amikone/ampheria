@@ -19,7 +19,6 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-
 Future<void> updateUserLocation() async {
   bool serviceEnabled;
   LocationPermission permission;

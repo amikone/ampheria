@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_auth_ui/supabase_auth_ui.dart';
 
-import '../main.dart';
+import '../main.dart'; // Assurez-vous que cet import pointe bien vers vos fonctions updateUserLocation/Activity
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -24,6 +24,7 @@ class LoginPage extends StatelessWidget {
         ),
       ),
     );
+
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E2C), // Dark background color
       body: SafeArea(
@@ -53,6 +54,7 @@ class LoginPage extends StatelessWidget {
                   style: TextStyle(fontSize: 16, color: Colors.white70),
                 ),
                 const SizedBox(height: 32),
+
                 Theme(
                   data: darkTheme,
                   child: SupaEmailAuth(
@@ -85,7 +87,10 @@ class LoginPage extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 SupaSocialsAuth(
-                  socialProviders: const [OAuthProvider.google],
+                  socialProviders: const [
+                    OAuthProvider.google,
+                    OAuthProvider.apple,
+                  ],
                   colored: true,
                   redirectUrl: kIsWeb ? null : 'io.supabase.flutter://callback',
                   showSuccessSnackBar: false,

@@ -32,7 +32,9 @@ class _ProfilePageState extends State<ProfilePage> {
   double _maxDistance = 50;
 
   List<String> _tags = [];
-  final _tagController = TextEditingController();
+
+  // Nouveau controller spécifique à l'Autocomplete
+  TextEditingController? _autocompleteController;
 
   bool _loading = true;
 
@@ -45,7 +47,6 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _tagController.dispose();
     _saveProfile();
     _savePreferences();
     super.dispose();
@@ -231,7 +232,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
     setState(() {
       _tags.add(cleanName);
-      _tagController.clear();
     });
 
     try {
@@ -434,6 +434,80 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+
+  Future<void> _showDeleteAccountDialog() async {
+    bool isDeleting = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1E1E1E),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                  SizedBox(width: 8),
+                  Text('Supprimer le compte', style: TextStyle(color: Colors.redAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              content: const Text(
+                'Es-tu sûr de vouloir supprimer définitivement ton compte ? Cette action est irréversible et ton numéro de téléphone sera bloqué pour de futures inscriptions.',
+                style: TextStyle(color: Colors.white70, height: 1.4),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isDeleting ? null : () => Navigator.pop(context),
+                  child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: isDeleting ? null : () async {
+                    setStateDialog(() => isDeleting = true);
+                    try {
+                      // 1. Appel de notre super fonction RPC qui supprime + blacklist le tel
+                      await supabase.rpc('delete_user');
+
+                      // 2. Déconnexion
+                      await supabase.auth.signOut();
+
+                      if (context.mounted) {
+                        Navigator.pop(context); // Ferme le dialog
+                        Navigator.pushReplacementNamed(context, '/login');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text("Ton compte a été définitivement supprimé."),
+                              backgroundColor: Colors.green
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Erreur: ${e.toString()}"), backgroundColor: Colors.red),
+                        );
+                      }
+                    } finally {
+                      if (mounted) setStateDialog(() => isDeleting = false);
+                    }
+                  },
+                  child: isDeleting
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Confirmer', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   // ==========================================
   // UI SECTIONS (Style "Premium Dark")
   // ==========================================
@@ -530,18 +604,77 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPassionsSection() {
-    return _buildGlassCard(
+    return Container(
+      decoration: BoxDecoration(
+        // Fond légèrement teinté pour détacher cette carte
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.deepPurpleAccent.withOpacity(0.15),
+            Colors.white.withOpacity(0.02),
+          ],
+        ),
+        // Bordure colorée plus épaisse
+        border: Border.all(color: Colors.deepPurpleAccent.withOpacity(0.6), width: 1.5),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          // Effet de "Glow" (lueur) pour attirer l'attention
+          BoxShadow(
+            color: Colors.deepPurpleAccent.withOpacity(0.15),
+            blurRadius: 20,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle("Mes passions", Icons.favorite_outline),
+          // HEADER DE LA SECTION
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurpleAccent.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.local_fire_department, color: Colors.orangeAccent, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  "Mes Passions",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // PHRASE D'ACCROCHE (Crucial pour l'UX)
+          const Text(
+            "L'algorithme utilise tes passions pour te trouver les meilleurs profils.",
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+          ),
+          const SizedBox(height: 20),
+
+          // CHAMP DE RECHERCHE
           Autocomplete<Map<String, dynamic>>(
             displayStringForOption: (option) => option['name'] as String,
             optionsBuilder: (textEditingValue) {
               if (textEditingValue.text.isEmpty) return const Iterable<Map<String, dynamic>>.empty();
               return _searchTags(textEditingValue.text);
             },
-            onSelected: (selection) => _addTag(selection['name'] as String),
+            onSelected: (selection) {
+              _addTag(selection['name'] as String);
+
+              // On vide le champ avec un très court délai pour écraser le comportement par défaut
+              Future.delayed(Duration.zero, () {
+                _autocompleteController?.clear();
+              });
+            },
             optionsViewBuilder: (context, onSelected, options) {
               return Align(
                 alignment: Alignment.topLeft,
@@ -560,8 +693,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         return ListTile(
                           title: Text(option['name'] as String, style: const TextStyle(color: Colors.white)),
                           trailing: Text(
-                              "${option['count']} personne(s)",
-                              style: const TextStyle(fontSize: 12, color: Colors.white54)
+                            "${option['count']} adepte(s)",
+                            style: const TextStyle(fontSize: 12, color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold),
                           ),
                           onTap: () => onSelected(option),
                         );
@@ -572,16 +705,30 @@ class _ProfilePageState extends State<ProfilePage> {
               );
             },
             fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+              // On sauvegarde la référence du controller
+              _autocompleteController = controller;
+
               return TextField(
                 controller: controller,
                 focusNode: focusNode,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Ajouter une passion...',
+                  hintText: 'Ex: Escalade, Cinéma coréen...',
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
-                  fillColor: Colors.black26,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  fillColor: Colors.black45, // Fond plus sombre pour contraster avec la carte
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.deepPurpleAccent.withOpacity(0.3)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.deepPurpleAccent.withOpacity(0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.deepPurpleAccent, width: 2),
+                  ),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.add_circle, color: Colors.deepPurpleAccent),
                     onPressed: () {
@@ -597,22 +744,66 @@ class _ProfilePageState extends State<ProfilePage> {
               );
             },
           ),
+
+          // AFFICHAGE DES TAGS EN MODE "PREMIUM"
           if (_tags.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Wrap(
-              spacing: 8.0,
-              runSpacing: 8.0,
-              children: _tags.map((tag) => Chip(
-                // Retour du violet sur les tags (texte et bordure)
-                label: Text(tag, style: const TextStyle(color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold)),
-                onDeleted: () => _removeTag(tag),
-                deleteIconColor: Colors.deepPurpleAccent,
-                backgroundColor: Colors.deepPurpleAccent.withOpacity(0.15),
-                side: const BorderSide(color: Colors.deepPurpleAccent, width: 1),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              )).toList(),
+              spacing: 10.0,
+              runSpacing: 10.0,
+              children: _tags.map((tag) => _buildPremiumTag(tag)).toList(),
             ),
           ]
+        ],
+      ),
+    );
+  }
+
+  // Petit widget séparé pour garder le code propre
+  Widget _buildPremiumTag(String tag) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.deepPurpleAccent.withOpacity(0.8),
+            const Color(0xFF9C27B0).withOpacity(0.8), // Un violet un peu plus rose pour le dégradé
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.deepPurpleAccent.withOpacity(0.3),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            tag,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: () => _removeTag(tag),
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, size: 14, color: Colors.white),
+            ),
+          ),
         ],
       ),
     );
@@ -678,13 +869,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-
-
-
-
-
-
-// Nouvelle section préférences complète
+  // Nouvelle section préférences complète
   Widget _buildPreferencesSection() {
     return _buildGlassCard(
       child: Column(
@@ -873,7 +1058,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-// Banner de suggestion non-invasive
+  // Banner de suggestion non-invasive
   void _showSuggestionBanner(List<String> suggested) {
     ScaffoldMessenger.of(context).showMaterialBanner(
       MaterialBanner(
@@ -932,10 +1117,40 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.settings, color: Colors.white),
-            tooltip: 'Changer le mot de passe',
-            onPressed: _showChangePasswordDialog,
+            color: const Color(0xFF1E1B2E), // Fond du menu raccord avec ton thème
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onSelected: (value) {
+              if (value == 'password') {
+                _showChangePasswordDialog();
+              } else if (value == 'delete') {
+                _showDeleteAccountDialog();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'password',
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline, color: Colors.white70, size: 20),
+                    SizedBox(width: 12),
+                    Text('Changer le mot de passe', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1), // Ligne séparatrice
+              const PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_forever, color: Colors.redAccent, size: 20),
+                    SizedBox(width: 12),
+                    Text('Supprimer mon compte', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
