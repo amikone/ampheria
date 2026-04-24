@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// --- CONSTANTES DU DESIGN SYSTEM ---
+const Color _kBackgroundBlack = Color(0xFF121212);
+const Color _kPrimaryAccent = Colors.deepPurpleAccent;
+const Color _kDangerRed = Colors.redAccent;
+final Color _kGlassBackground = Colors.white.withOpacity(0.05);
+final Color _kGlassBorder = Colors.white.withOpacity(0.1);
+
 class ProfileDetailModal extends StatefulWidget {
   final String profileId;
 
@@ -35,18 +42,21 @@ class _ProfileDetailModalState extends State<ProfileDetailModal> {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      child: FutureBuilder<Map<String, dynamic>?>(
-        future: _profileFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const _LoadingView();
-          }
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const _ErrorView();
-          }
-          return _ProfileContentView(profile: snapshot.data!);
-        },
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Material( // Assure que le fond reste noir profond, même en modal
+        color: _kBackgroundBlack,
+        child: FutureBuilder<Map<String, dynamic>?>(
+          future: _profileFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const _LoadingView();
+            }
+            if (!snapshot.hasData || snapshot.data == null) {
+              return const _ErrorView();
+            }
+            return _ProfileContentView(profile: snapshot.data!);
+          },
+        ),
       ),
     );
   }
@@ -59,10 +69,11 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    return SizedBox(
+    return const SizedBox(
       height: 400,
-      child: Center(child: CircularProgressIndicator(color: primaryColor)),
+      child: Center(
+        child: CircularProgressIndicator(color: _kPrimaryAccent),
+      ),
     );
   }
 }
@@ -75,8 +86,11 @@ class _ErrorView extends StatelessWidget {
     return Container(
       height: 400,
       alignment: Alignment.center,
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: const Text('Profil introuvable.', style: TextStyle(fontSize: 16)),
+      color: _kBackgroundBlack,
+      child: const Text(
+        'Profil introuvable.',
+        style: TextStyle(fontSize: 16, color: Colors.white70),
+      ),
     );
   }
 }
@@ -86,19 +100,56 @@ class _ProfileContentView extends StatelessWidget {
 
   const _ProfileContentView({required this.profile});
 
-  Widget _buildSectionTitle(String title, IconData icon, Color primaryColor) {
+  // --- COMPOSANTS PRIVÉS (Design System) ---
+
+  Widget _buildGlassCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24.0),
+      decoration: BoxDecoration(
+        color: _kGlassBackground,
+        borderRadius: BorderRadius.circular(24.0),
+        border: Border.all(color: _kGlassBorder, width: 1),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
         children: [
-          Icon(icon, color: primaryColor),
-          const SizedBox(width: 8),
+          Icon(icon, color: _kPrimaryAccent, size: 24),
+          const SizedBox(width: 12),
           Text(
             title,
-            style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGlassChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+      decoration: BoxDecoration(
+        color: _kPrimaryAccent.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kPrimaryAccent, width: 1),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: _kPrimaryAccent,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+        ),
       ),
     );
   }
@@ -106,11 +157,9 @@ class _ProfileContentView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tags = List<String>.from(profile['tags'] ?? []);
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    final cardRadius = 16.0;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: _kBackgroundBlack,
       body: CustomScrollView(
         slivers: [
           _SliverProfileHeader(profile: profile),
@@ -119,121 +168,70 @@ class _ProfileContentView extends StatelessWidget {
             sliver: SliverList(
               delegate: SliverChildListDelegate(
                 [
-                  _ProfileDetailsCard(
-                    profile: profile,
-                    primaryColor: primaryColor,
-                    cardRadius: cardRadius,
-                  ),
-                  const SizedBox(height: 16),
+                  _ProfileDetailsCard(profile: profile),
+                  const SizedBox(height: 20),
 
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(cardRadius)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionTitle("À propos", Icons.person_outline, primaryColor),
-                          Text(
-                            profile['bio'] ?? 'Aucune description.',
-                            style: const TextStyle(fontSize: 16, height: 1.5),
+                  _buildGlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionTitle("À propos", Icons.person_outline_rounded),
+                        Text(
+                          profile['bio'] ?? 'Aucune description.',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 1.5,
+                            color: Colors.white70,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
 
                   if (tags.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(cardRadius)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionTitle("Intérêts", Icons.favorite_outline, primaryColor),
-                            const SizedBox(height: 8), // Un peu d'air
-                            Wrap(
-                              spacing: 10.0, // Espace horizontal entre les tags
-                              runSpacing: 12.0, // Espace vertical entre les lignes
-                              children: tags.map((tagName) {
-                                // --- LE NOUVEAU DESIGN FANCY DES TAGS ---
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
-                                  decoration: BoxDecoration(
-                                    // Dégradé élégant
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        primaryColor.withOpacity(0.7),
-                                        primaryColor,
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    // Ombre douce pour faire ressortir la bulle
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: primaryColor.withOpacity(0.3),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // Petite icône optionnelle pour le style
-                                      const Icon(
-                                          Icons.tag,
-                                          color: Colors.white70,
-                                          size: 16
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        tagName,
-                                        style: const TextStyle(
-                                          color: Colors.white, // Blanc garanti !
-                                          fontWeight: FontWeight.w600, // Texte un peu plus gras
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(height: 20),
+                    _buildGlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle("Intérêts", Icons.favorite_outline_rounded),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 12.0,
+                            runSpacing: 12.0,
+                            children: tags.map((tagName) => _buildGlassChip(tagName)).toList(),
+                          ),
+                        ],
                       ),
                     ),
                   ],
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 40),
 
                   Center(
                     child: ElevatedButton.icon(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
-                      label: const Text('Fermer le profil',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.close_rounded, color: Colors.white),
+                      label: const Text(
+                        'Fermer le profil',
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.withOpacity(0.1),
-                        foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
+                        backgroundColor: _kGlassBackground,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(30), // Forme pilule
+                          side: BorderSide(color: _kGlassBorder),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -248,25 +246,15 @@ class _ProfileContentView extends StatelessWidget {
 
 class _ProfileDetailsCard extends StatelessWidget {
   final Map<String, dynamic> profile;
-  final Color primaryColor;
-  final double cardRadius;
 
-  const _ProfileDetailsCard({
-    required this.profile,
-    required this.primaryColor,
-    required this.cardRadius,
-  });
+  const _ProfileDetailsCard({required this.profile});
 
   String _getDisplayGender(String? gender) {
     switch (gender) {
-      case 'male':
-        return 'Homme';
-      case 'female':
-        return 'Femme';
-      case 'other':
-        return 'Autre';
-      default:
-        return 'Non précisé';
+      case 'male': return 'Homme';
+      case 'female': return 'Femme';
+      case 'other': return 'Autre';
+      default: return 'Non précisé';
     }
   }
 
@@ -278,23 +266,24 @@ class _ProfileDetailsCard extends StatelessWidget {
         ? '${(DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor()} ans'
         : 'Âge inconnu';
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _InfoColumn(icon: Icons.person_outline, value: gender, color: primaryColor),
-            Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.3)),
-            _InfoColumn(icon: Icons.cake_outlined, value: birthDate, color: primaryColor),
-            if (city.isNotEmpty && city != 'Non précisée') ...[
-              Container(width: 1, height: 40, color: Colors.grey.withOpacity(0.3)),
-              _InfoColumn(icon: Icons.location_on_outlined, value: city, color: primaryColor),
-            ]
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 24.0),
+      decoration: BoxDecoration(
+        color: _kGlassBackground,
+        borderRadius: BorderRadius.circular(24.0),
+        border: Border.all(color: _kGlassBorder, width: 1),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _InfoColumn(icon: Icons.person_outline_rounded, value: gender),
+          Container(width: 1, height: 40, color: Colors.white24),
+          _InfoColumn(icon: Icons.cake_outlined, value: birthDate),
+          if (city.isNotEmpty && city != 'Non précisée') ...[
+            Container(width: 1, height: 40, color: Colors.white24),
+            _InfoColumn(icon: Icons.location_on_outlined, value: city),
+          ]
+        ],
       ),
     );
   }
@@ -303,20 +292,23 @@ class _ProfileDetailsCard extends StatelessWidget {
 class _InfoColumn extends StatelessWidget {
   final IconData icon;
   final String value;
-  final Color color;
 
-  const _InfoColumn({required this.icon, required this.value, required this.color});
+  const _InfoColumn({required this.icon, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 28),
-        const SizedBox(height: 6),
+        Icon(icon, color: _kPrimaryAccent, size: 28),
+        const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.white
+          ),
         ),
       ],
     );
@@ -353,7 +345,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
     if (_currentPhotoIndex < photos.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
-        curve: Curves.ease,
+        curve: Curves.easeOutCubic,
       );
     }
   }
@@ -362,7 +354,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
     if (_currentPhotoIndex > 0) {
       _pageController.previousPage(
         duration: const Duration(milliseconds: 300),
-        curve: Curves.ease,
+        curve: Curves.easeOutCubic,
       );
     }
   }
@@ -377,28 +369,44 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              backgroundColor: _kBackgroundBlack,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(color: _kGlassBorder),
+              ),
               title: Row(
                 children: const [
-                  Icon(Icons.flag_outlined, color: Colors.redAccent),
-                  SizedBox(width: 8),
-                  Text('Signaler ce profil'),
+                  Icon(Icons.flag_outlined, color: _kDangerRed),
+                  SizedBox(width: 12),
+                  Text('Signaler ce profil', style: TextStyle(color: Colors.white)),
                 ],
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Veuillez indiquer la raison de votre signalement :'),
-                  const SizedBox(height: 16),
+                  const Text(
+                    'Veuillez indiquer la raison de votre signalement :',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: textController,
+                    style: const TextStyle(color: Colors.white),
+                    cursorColor: _kPrimaryAccent,
                     decoration: InputDecoration(
-                      hintText: 'Faux profil, comportement inapproprié...',
+                      hintText: 'Faux profil, comportement...',
+                      hintStyle: const TextStyle(color: Colors.white54),
                       filled: true,
-                      fillColor: Colors.grey.withOpacity(0.1),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                      fillColor: Colors.black26, // Fond plein foncé selon contrainte
+                      contentPadding: const EdgeInsets.all(16),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide.none, // Pas de bordure au repos
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: const BorderSide(color: _kPrimaryAccent, width: 1.5), // Bordure primary au focus
                       ),
                     ),
                     maxLines: 3,
@@ -408,13 +416,17 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
               actions: [
                 TextButton(
                   onPressed: isSubmitting ? null : () => Navigator.pop(context),
-                  child: const Text('Annuler'),
+                  child: const Text('Annuler', style: TextStyle(color: Colors.white54)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    backgroundColor: _kDangerRed.withOpacity(0.1),
+                    foregroundColor: _kDangerRed,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30), // Forme pilule
+                      side: const BorderSide(color: _kDangerRed),
+                    ),
                   ),
                   onPressed: isSubmitting
                       ? null
@@ -440,9 +452,11 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                       if (context.mounted) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Le profil a été signalé avec succès.'),
-                            backgroundColor: Colors.green,
+                          SnackBar(
+                            content: const Text('Le profil a été signalé.', style: TextStyle(color: Colors.white)),
+                            backgroundColor: _kGlassBackground,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: _kGlassBorder)),
                           ),
                         );
                       }
@@ -451,8 +465,8 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Erreur lors du signalement : $e'),
-                            backgroundColor: Colors.red,
+                            content: Text('Erreur : $e', style: const TextStyle(color: Colors.white)),
+                            backgroundColor: _kDangerRed.withOpacity(0.8),
                           ),
                         );
                       }
@@ -462,7 +476,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                       ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    child: CircularProgressIndicator(color: _kDangerRed, strokeWidth: 2),
                   )
                       : const Text('Signaler'),
                 ),
@@ -479,21 +493,22 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
     final photos = List<String>.from(widget.profile['photos'] ?? []);
     final fullName = widget.profile['full_name'] ?? 'Utilisateur';
     final profileId = widget.profile['id'];
-    final primaryColor = Theme.of(context).colorScheme.primary;
 
     return SliverAppBar(
       expandedHeight: 450.0,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.transparent, // Transparente selon contrainte
+      elevation: 0, // Pas d'élévation selon contrainte
       pinned: true,
       stretch: true,
       automaticallyImplyLeading: false,
       actions: [
         if (profileId != null)
           Container(
-            margin: const EdgeInsets.only(right: 8, top: 8),
+            margin: const EdgeInsets.only(right: 16, top: 8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withOpacity(0.4),
               shape: BoxShape.circle,
+              border: Border.all(color: Colors.white24, width: 1), // Légère touche premium
             ),
             child: IconButton(
               icon: const Icon(Icons.flag_outlined, color: Colors.white),
@@ -514,24 +529,24 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
               itemBuilder: (context, index) {
                 final url = photos.isNotEmpty
                     ? photos[index]
-                    : "https://via.placeholder.com/400x400?text=No+Photo";
+                    : "https://via.placeholder.com/400x400/121212/FFFFFF?text=Aucune+Photo";
                 return Image.network(url, fit: BoxFit.cover);
               },
             ),
 
-            // Ombre portée pour garantir la lisibilité du texte
+            // Dégradé Noir profond pour lier l'image au Scaffold
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.black45, Colors.transparent, Colors.black87],
-                  stops: [0.0, 0.4, 1.0],
+                  colors: [Colors.black45, Colors.transparent, _kBackgroundBlack],
+                  stops: [0.0, 0.5, 1.0],
                 ),
               ),
             ),
 
-            // Zones cliquables pour naviguer dans les photos
+            // Navigation invisible
             Row(
               children: [
                 Expanded(
@@ -562,23 +577,24 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                       color: Colors.white,
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
                     ),
                   ),
                   if (photos.length > 1) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(photos.length, (index) {
                         return AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           width: _currentPhotoIndex == index ? 24 : 8,
-                          height: 8,
+                          height: 6,
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(10),
                             color: _currentPhotoIndex == index
-                                ? primaryColor
-                                : Colors.white.withOpacity(0.5),
+                                ? _kPrimaryAccent
+                                : Colors.white30,
                           ),
                         );
                       }),

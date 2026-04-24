@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../Widgets/GenderSelector.dart';
@@ -32,6 +35,32 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     _cityController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<String?> _validatePhoneNumber(String phone) async {
+    if (phone.isEmpty) return null;
+
+    // 1. Générer le hash SHA-256 du numéro (exactement comme dans ton SQL)
+    final bytes = utf8.encode(phone);
+    final hash = sha256.convert(bytes).toString();
+
+    try {
+      // 2. Vérifier si le numéro est dans la BLACKLIST
+      final blacklistMatch = await supabase
+          .from('blacklist')
+          .select()
+          .eq('phone_hash', hash)
+          .maybeSingle();
+
+      if (blacklistMatch != null) {
+        return "Ce numéro de téléphone est banni de la plateforme.";
+      }
+
+
+      return null; // Tout est OK
+    } catch (e) {
+      return "Erreur lors de la vérification du numéro.";
+    }
   }
 
   bool _canGoToNextStep() {
@@ -84,35 +113,57 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Future<void> _submit() async {
+    final phone = _phoneController.text.trim();
+
     setState(() => _loading = true);
+
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId != null) {
+      if (userId == null) return;
 
-        // 1. Mise à jour du profil (ta table)
-        await supabase.from('profiles').update({
-          'full_name': _fullNameController.text.trim(),
-          'birth_date': _birthDateController.text,
-          'gender': _selectedGender,
-          'city': _cityController.text.trim(),
-        }).eq('id', userId);
-
-        // 2. Mise à jour du téléphone dans auth.users (si renseigné)
-        if (_phoneController.text.trim().isNotEmpty) {
-          await supabase.auth.updateUser(
-            UserAttributes(phone: _phoneController.text.trim()),
+      // --- NOUVEAU : Vérification du numéro ---
+      if (phone.isNotEmpty) {
+        final errorMsg = await _validatePhoneNumber(phone);
+        if (errorMsg != null) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(backgroundColor: Colors.redAccent, content: Text(errorMsg)),
           );
+          setState(() => _loading = false);
+          return; // On arrête tout ici
         }
-
-        if (!mounted) return;
-        Navigator.pop(context);
       }
+
+      // 1. Mise à jour du profil
+      await supabase.from('profiles').update({
+        'full_name': _fullNameController.text.trim(),
+        'birth_date': _birthDateController.text,
+        'gender': _selectedGender,
+        'city': _cityController.text.trim(),
+      }).eq('id', userId);
+
+      // 2. Mise à jour du téléphone
+      if (phone.isNotEmpty) {
+        try {
+          await supabase.auth.updateUser(UserAttributes(phone: phone));
+        } catch (authError) {
+          // Si le numéro est déjà pris, Supabase renverra une erreur ici
+          if (authError.toString().contains('already exists')) {
+            throw "Ce numéro est déjà rattaché à un autre compte.";
+          }
+          rethrow;
+        }
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.redAccent,
-          content: Text('Erreur de sauvegarde: $e'),
+          content: Text(e.toString()),
         ),
       );
     } finally {
