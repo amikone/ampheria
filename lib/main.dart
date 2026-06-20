@@ -5,7 +5,9 @@ import 'package:ampheria/Presentation/Page/Like/LikePage.dart';
 import 'package:ampheria/Presentation/Page/People/PeoplePage.dart';
 import 'package:ampheria/Presentation/Page/Profile/ProfileScreen.dart';
 import 'package:ampheria/Presentation/Widgets/BottomNavBar.dart';
+import 'package:ampheria/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -85,6 +87,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Amikone',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData.dark().copyWith(
         colorScheme: const ColorScheme.dark(
           primary: Colors.deepPurple,

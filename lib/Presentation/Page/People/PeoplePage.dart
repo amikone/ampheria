@@ -675,7 +675,7 @@ class _ProfileCard extends StatelessWidget {
                     if (progress == null) return child;
                     return const Center(child: CircularProgressIndicator());
                   },
-                  errorBuilder: (_, _, _) =>
+                  errorBuilder: (context, error, stackTrace) =>
                   const Icon(Icons.broken_image, color: Colors.grey),
                 ),
               ),

@@ -1,0 +1,14 @@
+{
+  "welcome": "Bienvenue",
+  "signInToContinue": "Connectez-vous pour continuer",
+  "or": "OU",
+  "error": "Erreur : {error}",
+  "email": "Email",
+  "password": "Mot de passe",
+  "signIn": "Se connecter",
+  "signUp": "S'inscrire",
+  "noAccount": "Pas de compte ? S'inscrire",
+  "alreadyHaveAccount": "Déjà un compte ? Se connecter",
+  "loginWithGoogle": "Se connecter avec Google",
+  "loginWithApple": "Se connecter avec Apple"
+}

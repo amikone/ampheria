@@ -1,0 +1,14 @@
+{
+  "welcome": "Welcome",
+  "signInToContinue": "Sign in to continue",
+  "or": "OR",
+  "error": "Error: {error}",
+  "email": "Email",
+  "password": "Password",
+  "signIn": "Sign In",
+  "signUp": "Sign Up",
+  "noAccount": "Don't have an account? Sign up",
+  "alreadyHaveAccount": "Already have an account? Sign in",
+  "loginWithGoogle": "Login with Google",
+  "loginWithApple": "Login with Apple"
+}

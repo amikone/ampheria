@@ -1,30 +1,99 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_auth_ui/supabase_auth_ui.dart';
+import 'package:ampheria/extensions/context_extension.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main.dart'; // Assurez-vous que cet import pointe bien vers vos fonctions updateUserLocation/Activity
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final supabase = Supabase.instance.client;
-    final darkTheme = ThemeData.dark().copyWith(
-      primaryColor: Colors.deepPurple,
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.white,
-          backgroundColor: Colors.deepPurple,
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
+  State<LoginPage> createState() => _LoginPageState();
+}
 
+class _LoginPageState extends State<LoginPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _isSignIn = true;
+
+  Future<void> _handleEmailAuth() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) return;
+
+    setState(() => _isLoading = true);
+    try {
+      if (_isSignIn) {
+        await Supabase.instance.client.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+      } else {
+        await Supabase.instance.client.auth.signUp(
+          email: email,
+          password: password,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Vérifiez vos emails pour confirmer votre compte')),
+          );
+        }
+      }
+      if (mounted && _isSignIn) {
+        updateUserLocation();
+        updateUserActivity();
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } on AuthException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.localizations.error(error.message))),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.localizations.error(error.toString()))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleSocialSignIn(OAuthProvider provider) async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        provider,
+        redirectTo: kIsWeb ? null : 'io.supabase.flutter://callback',
+      );
+    } on AuthException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.localizations.error(error.message))),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.localizations.error(error.toString()))),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1E1E2C), // Dark background color
       body: SafeArea(
@@ -40,34 +109,87 @@ class LoginPage extends StatelessWidget {
                   color: Colors.deepPurple,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Bienvenue',
-                  style: TextStyle(
+                Text(
+                  context.localizations.welcome,
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Connectez-vous pour continuer',
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
+                Text(
+                  context.localizations.signInToContinue,
+                  style: const TextStyle(fontSize: 16, color: Colors.white70),
                 ),
                 const SizedBox(height: 32),
 
-                Theme(
-                  data: darkTheme,
-                  child: SupaEmailAuth(
-                    redirectTo: kIsWeb ? null : 'io.supabase.flutter://callback',
-                    onSignInComplete: (response) {
-                      updateUserLocation();
-                      updateUserActivity();
-                      Navigator.pushReplacementNamed(context, '/home');
-                    },
-                    onSignUpComplete: (response) {
-                      debugPrint('🆕 Compte créé : ${response.user?.email}');
-                    },
-                    metadataFields: const [],
+                TextField(
+                  controller: _emailController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: context.localizations.email,
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    prefixIcon: const Icon(Icons.email_outlined, color: Colors.white70),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Colors.white24),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Colors.deepPurple),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: context.localizations.password,
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Colors.white24),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Colors.deepPurple),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 24),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleEmailAuth,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Text(_isSignIn ? context.localizations.signIn : context.localizations.signUp),
+                  ),
+                ),
+
+                TextButton(
+                  onPressed: () => setState(() => _isSignIn = !_isSignIn),
+                  child: Text(
+                    _isSignIn ? context.localizations.noAccount : context.localizations.alreadyHaveAccount,
+                    style: const TextStyle(color: Colors.deepPurpleAccent),
                   ),
                 ),
 
@@ -76,9 +198,9 @@ class LoginPage extends StatelessWidget {
                 Row(
                   children: [
                     const Expanded(child: Divider(thickness: 1, color: Colors.white24)),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text('OU', style: TextStyle(color: Colors.white70)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text(context.localizations.or, style: const TextStyle(color: Colors.white70)),
                     ),
                     const Expanded(child: Divider(thickness: 1, color: Colors.white24)),
                   ],
@@ -86,28 +208,46 @@ class LoginPage extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
-                SupaSocialsAuth(
-                  socialProviders: const [
-                    OAuthProvider.google,
-                    OAuthProvider.apple,
-                  ],
-                  colored: true,
-                  redirectUrl: kIsWeb ? null : 'io.supabase.flutter://callback',
-                  showSuccessSnackBar: false,
-                  onSuccess: (session) {
-                    updateUserLocation();
-                    updateUserActivity();
-                    Navigator.pushReplacementNamed(context, '/home');
-                  },
-                  onError: (error) {
-                    debugPrint('❌ Erreur : $error');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erreur : $error')),
-                    );
-                  },
+                _SocialButton(
+                  icon: Icons.g_mobiledata, // On peut utiliser une image ou FontAwesome si dispo
+                  label: context.localizations.loginWithGoogle,
+                  onPressed: () => _handleSocialSignIn(OAuthProvider.google),
+                ),
+                const SizedBox(height: 12),
+                _SocialButton(
+                  icon: Icons.apple,
+                  label: context.localizations.loginWithApple,
+                  onPressed: () => _handleSocialSignIn(OAuthProvider.apple),
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SocialButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const _SocialButton({required this.icon, required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 28, color: Colors.white),
+        label: Text(label, style: const TextStyle(color: Colors.white)),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Colors.white24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
           ),
         ),
       ),
