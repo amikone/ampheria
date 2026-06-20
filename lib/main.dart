@@ -56,7 +56,7 @@ Future<void> updateUserLocation() async {
       }).eq('id', userId);
     }
   } catch (e) {
-    print("Erreur lors de la récupération/mise à jour de la position: $e");
+    //print("Erreur lors de la récupération/mise à jour de la position: $e");
   }
 
 }
@@ -73,7 +73,7 @@ Future<void> updateUserActivity() async {
       'last_active_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);
   } catch (e) {
-    print("Erreur lors de la mise à jour de last_active_at: $e");
+    //print("Erreur lors de la mise à jour de last_active_at: $e");
   }
 }
 

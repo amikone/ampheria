@@ -33,7 +33,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("/Volumes/external/Users/krfcm2/Nextcloud/Boulot/Endide/Keystore/endide.keystore")
+            storeFile = file("/home/krfcm2/Documents/Keystore/endide.keystore")
             storePassword = "Endide3220"
             keyAlias = "endide-upload"
             keyPassword = "Endide3220"
