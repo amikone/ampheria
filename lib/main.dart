@@ -1,13 +1,12 @@
-import 'package:ampheria/Presentation/LoginView.dart';
-import 'package:ampheria/Presentation/Page/Chat/ChatPage.dart';
-import 'package:ampheria/Presentation/Page/Health/HealthPage.dart';
-import 'package:ampheria/Presentation/Page/Like/LikePage.dart';
-import 'package:ampheria/Presentation/Page/People/PeoplePage.dart';
-import 'package:ampheria/Presentation/Page/Profile/ProfileScreen.dart';
-import 'package:ampheria/Presentation/Widgets/BottomNavBar.dart';
+import 'package:ampheria/presentation/login_view.dart';
+import 'package:ampheria/presentation/page/chat/chat_page.dart';
+import 'package:ampheria/presentation/page/health/health_page.dart';
+import 'package:ampheria/presentation/page/like/like_page.dart';
+import 'package:ampheria/presentation/page/people/people_page.dart';
+import 'package:ampheria/presentation/page/profile/profile_screen.dart';
+import 'package:ampheria/presentation/widgets/bottom_nav_bar.dart';
 import 'package:ampheria/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -58,7 +57,7 @@ Future<void> updateUserLocation() async {
       }).eq('id', userId);
     }
   } catch (e) {
-    //print("Erreur lors de la récupération/mise à jour de la position: $e");
+    print("Erreur lors de la récupération/mise à jour de la position: $e");
   }
 
 }
@@ -75,7 +74,7 @@ Future<void> updateUserActivity() async {
       'last_active_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);
   } catch (e) {
-    //print("Erreur lors de la mise à jour de last_active_at: $e");
+    print("Erreur lors de la mise à jour de last_active_at: $e");
   }
 }
 

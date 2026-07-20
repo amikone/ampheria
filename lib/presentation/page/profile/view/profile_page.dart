@@ -5,8 +5,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../Services/ReferenceDataService.dart';
-import '../../Widgets/OrientationSelector.dart';
+import 'package:ampheria/services/reference_data_service.dart';
+import 'package:ampheria/presentation/widgets/orientation_selector.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});

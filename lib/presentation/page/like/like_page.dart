@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../Widgets/ProfileDetailModal.dart';
+import 'package:ampheria/presentation/widgets/profile_detail_modal.dart';
 
 class LikePage extends StatefulWidget {
   const LikePage({super.key});

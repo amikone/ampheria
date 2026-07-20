@@ -6,8 +6,8 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../Models/DonationCardModel.dart';
-import '../../../Utils/Icons.dart';
+import 'package:ampheria/models/donation_card_model.dart';
+import 'package:ampheria/utils/icons.dart';
 
 class HealthPage extends StatefulWidget {
   const HealthPage({super.key});

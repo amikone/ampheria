@@ -14,7 +14,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:uuid/uuid.dart';
 
-import '../../Widgets/ProfileDetailModal.dart';
+import 'package:ampheria/presentation/widgets/profile_detail_modal.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});

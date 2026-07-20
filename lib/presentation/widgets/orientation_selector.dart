@@ -1,7 +1,7 @@
 // lib/widgets/orientation_selector.dart
 
 import 'package:flutter/material.dart';
-import '../../Services/ReferenceDataService.dart';
+import 'package:ampheria/services/reference_data_service.dart';
 
 class OrientationSelector extends StatefulWidget {
   final String? selectedOrientation;

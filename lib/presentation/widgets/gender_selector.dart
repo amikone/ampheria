@@ -1,7 +1,7 @@
 // lib/widgets/gender_selector.dart
 
 import 'package:flutter/material.dart';
-import '../../Services/GenderService.dart';
+import 'package:ampheria/services/gender_service.dart';
 
 class GenderSelector extends StatefulWidget {
   final String? selectedGender;
