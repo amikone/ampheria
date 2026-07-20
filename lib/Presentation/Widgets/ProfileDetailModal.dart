@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// --- CONSTANTES DU DESIGN SYSTEM ---
 const Color _kBackgroundBlack = Color(0xFF121212);
 const Color _kPrimaryAccent = Colors.deepPurpleAccent;
 const Color _kDangerRed = Colors.redAccent;
@@ -43,7 +42,7 @@ class _ProfileDetailModalState extends State<ProfileDetailModal> {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: Material( // Assure que le fond reste noir profond, même en modal
+      child: Material(
         color: _kBackgroundBlack,
         child: FutureBuilder<Map<String, dynamic>?>(
           future: _profileFuture,
@@ -62,7 +61,6 @@ class _ProfileDetailModalState extends State<ProfileDetailModal> {
   }
 }
 
-// --- Views ---
 
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
@@ -100,7 +98,6 @@ class _ProfileContentView extends StatelessWidget {
 
   const _ProfileContentView({required this.profile});
 
-  // --- COMPOSANTS PRIVÉS (Design System) ---
 
   Widget _buildGlassCard({required Widget child}) {
     return Container(
@@ -242,7 +239,6 @@ class _ProfileContentView extends StatelessWidget {
   }
 }
 
-// --- Components ---
 
 class _ProfileDetailsCard extends StatelessWidget {
   final Map<String, dynamic> profile;
@@ -398,15 +394,15 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                       hintText: 'Faux profil, comportement...',
                       hintStyle: const TextStyle(color: Colors.white54),
                       filled: true,
-                      fillColor: Colors.black26, // Fond plein foncé selon contrainte
+                      fillColor: Colors.black26,
                       contentPadding: const EdgeInsets.all(16),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none, // Pas de bordure au repos
+                        borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: const BorderSide(color: _kPrimaryAccent, width: 1.5), // Bordure primary au focus
+                        borderSide: const BorderSide(color: _kPrimaryAccent, width: 1.5),
                       ),
                     ),
                     maxLines: 3,
@@ -424,7 +420,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                     foregroundColor: _kDangerRed,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30), // Forme pilule
+                      borderRadius: BorderRadius.circular(30),
                       side: const BorderSide(color: _kDangerRed),
                     ),
                   ),
@@ -496,8 +492,8 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
 
     return SliverAppBar(
       expandedHeight: 450.0,
-      backgroundColor: Colors.transparent, // Transparente selon contrainte
-      elevation: 0, // Pas d'élévation selon contrainte
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       pinned: true,
       stretch: true,
       automaticallyImplyLeading: false,
@@ -508,7 +504,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.4),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white24, width: 1), // Légère touche premium
+              border: Border.all(color: Colors.white24, width: 1),
             ),
             child: IconButton(
               icon: const Icon(Icons.flag_outlined, color: Colors.white),
@@ -534,7 +530,6 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
               },
             ),
 
-            // Dégradé Noir profond pour lier l'image au Scaffold
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -546,7 +541,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
               ),
             ),
 
-            // Navigation invisible
+
             Row(
               children: [
                 Expanded(

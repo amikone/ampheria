@@ -165,7 +165,6 @@ class _MainPageState extends State<MainPage> {
     ChatPage(),
     ProfileScreen(),
     HealthPage(),
-
   ];
 
   @override

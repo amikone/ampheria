@@ -40,12 +40,11 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   Future<String?> _validatePhoneNumber(String phone) async {
     if (phone.isEmpty) return null;
 
-    // 1. Générer le hash SHA-256 du numéro (exactement comme dans ton SQL)
+
     final bytes = utf8.encode(phone);
     final hash = sha256.convert(bytes).toString();
 
     try {
-      // 2. Vérifier si le numéro est dans la BLACKLIST
       final blacklistMatch = await supabase
           .from('blacklist')
           .select()
@@ -57,7 +56,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       }
 
 
-      return null; // Tout est OK
+      return null;
     } catch (e) {
       return "Erreur lors de la vérification du numéro.";
     }
@@ -121,7 +120,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;
 
-      // --- NOUVEAU : Vérification du numéro ---
       if (phone.isNotEmpty) {
         final errorMsg = await _validatePhoneNumber(phone);
         if (errorMsg != null) {
@@ -130,11 +128,11 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
             SnackBar(backgroundColor: Colors.redAccent, content: Text(errorMsg)),
           );
           setState(() => _loading = false);
-          return; // On arrête tout ici
+          return;
         }
       }
 
-      // 1. Mise à jour du profil
+
       await supabase.from('profiles').update({
         'full_name': _fullNameController.text.trim(),
         'birth_date': _birthDateController.text,
@@ -142,12 +140,10 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         'city': _cityController.text.trim(),
       }).eq('id', userId);
 
-      // 2. Mise à jour du téléphone
       if (phone.isNotEmpty) {
         try {
           await supabase.auth.updateUser(UserAttributes(phone: phone));
         } catch (authError) {
-          // Si le numéro est déjà pris, Supabase renverra une erreur ici
           if (authError.toString().contains('already exists')) {
             throw "Ce numéro est déjà rattaché à un autre compte.";
           }
@@ -171,7 +167,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     }
   }
 
-  // --- DESIGN SYSTEM ---
 
   Widget _buildGlassCard({required Widget child}) {
     return Container(
@@ -244,7 +239,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     );
   }
 
-  // --- ÉTAPES ---
 
   Widget _buildStep1Name() {
     return SingleChildScrollView(
@@ -365,7 +359,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
               'Optionnel — vous pourrez le renseigner plus tard.',
             ),
 
-            // Sélecteur indicatif + champ numéro
             _PhoneInputField(
               onChanged: (fullNumber) {
                 _phoneController.text = fullNumber;
@@ -495,7 +488,6 @@ class _PhoneInputField extends StatefulWidget {
 class _PhoneInputFieldState extends State<_PhoneInputField> {
   final _numberController = TextEditingController();
 
-  // Indicatifs les plus courants en premier
   final List<Map<String, String>> _countries = [
     {'flag': '🇫🇷', 'name': 'France',       'code': '+33'},
     {'flag': '🇧🇪', 'name': 'Belgique',     'code': '+32'},
@@ -518,7 +510,6 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
   @override
   void initState() {
     super.initState();
-    // France par défaut
     _selectedCountry = _countries.first;
   }
 
@@ -528,14 +519,10 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
     super.dispose();
   }
 
-  /// Formate le numéro local → international
-  /// Ex: "0652619066" → "+33652619066"
-  /// Ex: "652619066"  → "+33652619066"
   String _buildFullNumber(String localNumber) {
     final code = _selectedCountry['code']!;
     String digits = localNumber.replaceAll(RegExp(r'\D'), ''); // chiffres only
 
-    // Supprime le 0 initial si présent (format FR: 06... → 6...)
     if (digits.startsWith('0')) {
       digits = digits.substring(1);
     }
@@ -605,7 +592,6 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
           ),
           child: Row(
             children: [
-              // Bouton indicatif
               GestureDetector(
                 onTap: _showCountryPicker,
                 child: Container(
@@ -648,7 +634,6 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
                 ),
               ),
 
-              // Champ numéro local
               Expanded(
                 child: TextField(
                   controller: _numberController,
@@ -670,7 +655,6 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
           ),
         ),
 
-        // Aperçu du numéro formaté
         if (_numberController.text.isNotEmpty) ...[
           const SizedBox(height: 8),
           Padding(

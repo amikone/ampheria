@@ -1,6 +1,6 @@
 class DonationCardModel {
   final int id;
-  final String kind; // 'info', 'progress', 'cta'
+  final String kind;
   final String? title;
   final String? body;
   final String? icon;

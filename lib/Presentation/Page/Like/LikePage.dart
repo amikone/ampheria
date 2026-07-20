@@ -89,7 +89,6 @@ class _LikePageState extends State<LikePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // --- STYLE APPBAR MODIFIÉ ---
       appBar: AppBar(
         title: const Text(
           'Likes reçus',

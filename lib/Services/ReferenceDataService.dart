@@ -32,8 +32,6 @@ class ReferenceDataService {
     return _cachedOrientations!;
   }
 
-  // Suggestion automatique de interested_in selon l'orientation
-  // Tu peux personnaliser ce mapping comme tu veux
   static List<String> suggestInterestedIn({
     required String orientation,
     required String myGender,
@@ -41,13 +39,12 @@ class ReferenceDataService {
   }) {
     switch (orientation) {
       case 'Hétérosexuel(le)':
-      // Suggère le genre "opposé" basique
+
         if (myGender == 'Homme') return ['Femme'];
         if (myGender == 'Femme') return ['Homme'];
         return [];
 
       case 'Homosexuel(le)':
-      // Suggère le même genre
         return [myGender];
 
       case 'Bisexuel(le)':
@@ -55,12 +52,10 @@ class ReferenceDataService {
 
       case 'Pansexuel(le)':
       case 'Queer':
-      // Tous les genres
         return List<String>.from(allGenders);
 
       case 'Asexuel(le)':
       case 'En questionnement':
-      // Pas de suggestion, laisse l'utilisateur choisir
         return [];
 
       default:

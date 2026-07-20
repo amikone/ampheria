@@ -1,4 +1,3 @@
-// lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'ProfilePage.dart';
@@ -23,7 +22,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .maybeSingle();
 
     if (res == null) {
-      // Si le profil n'existe pas du tout, on l'initialise
       await Supabase.instance.client.from('profiles').insert({
         'id': user.id,
         'username': user.email,
@@ -32,7 +30,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return false;
     }
 
-    // Vérification stricte des champs obligatoires
     final isNameValid = res['full_name'] != null && (res['full_name'] as String).trim().isNotEmpty;
     final isGenderValid = res['gender'] != null && (res['gender'] as String).trim().isNotEmpty;
     final isDateValid = res['birth_date'] != null;
@@ -46,11 +43,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context,
       MaterialPageRoute(builder: (_) => const ProfileSetupPage()),
     );
-    // On rafraîchit la page au retour pour relancer le FutureBuilder
     setState(() {});
   }
 
-  // --- COMPOSANTS UI / DESIGN SYSTEM ---
 
   Widget _buildGlassCard({required Widget child}) {
     return Container(
@@ -121,7 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30), // Forme Pilule
+                      borderRadius: BorderRadius.circular(30),
                     ),
                   ),
                 ),
@@ -136,14 +131,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Fond principal
+      backgroundColor: const Color(0xFF121212),
       body: FutureBuilder<bool>(
         future: _isProfileComplete(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(
-                color: Colors.deepPurpleAccent, // Accent loader
+                color: Colors.deepPurpleAccent,
               ),
             );
           }
@@ -160,10 +155,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final isComplete = snapshot.data ?? false;
 
           if (isComplete) {
-            // Si tout est bon, on affiche la vraie page de profil
             return const ProfilePage();
           } else {
-            // Sinon, on invite au setup avec notre UI Premium
             return SafeArea(child: _buildIncompleteProfileView());
           }
         },

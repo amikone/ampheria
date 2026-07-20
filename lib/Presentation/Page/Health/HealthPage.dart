@@ -107,7 +107,6 @@ class _HealthPageState extends State<HealthPage> {
 
   Future<void> _verifyPurchaseOnServer(PurchaseDetails purchase) async {
     try {
-      // Appel de la Edge Function Supabase pour la vérification sécurisée
       final response = await supabase.functions.invoke(
         'verify-purchase',
         body: {
@@ -253,10 +252,6 @@ class _HealthPageState extends State<HealthPage> {
     );
   }
 
-  // ==========================================
-  // UI SECTIONS (Style "Premium Dark Glassmorphism")
-  // ==========================================
-
   Widget _buildGlassCard({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
@@ -272,7 +267,7 @@ class _HealthPageState extends State<HealthPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Fond noir profond
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: const Text(
           'Soutenir Amikone ❤️',
@@ -305,7 +300,7 @@ class _HealthPageState extends State<HealthPage> {
                   _buildCard(context, c, collecteActuelle),
                   const SizedBox(height: 16),
                 ],
-                const SizedBox(height: 40), // Espace en bas pour respirer
+                const SizedBox(height: 40),
               ],
             ),
           );
@@ -347,7 +342,7 @@ class _HealthPageState extends State<HealthPage> {
                   style: const TextStyle(
                     fontSize: 15,
                     height: 1.5,
-                    color: Colors.white70, // Texte secondaire
+                    color: Colors.white70,
                   ),
                   textAlign: TextAlign.justify,
                 ),
@@ -411,7 +406,7 @@ class _HealthPageState extends State<HealthPage> {
                 borderRadius: BorderRadius.circular(12),
                 child: LinearProgressIndicator(
                   value: progression,
-                  backgroundColor: Colors.white.withOpacity(0.05), // Fond très subtil
+                  backgroundColor: Colors.white.withOpacity(0.05),
                   color: Colors.deepPurpleAccent,
                   minHeight: 12,
                 ),
@@ -442,13 +437,13 @@ class _HealthPageState extends State<HealthPage> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurpleAccent, // Bouton principal en violet pur
+              backgroundColor: Colors.deepPurpleAccent,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-              minimumSize: const Size(double.infinity, 60), // Bouton légèrement plus grand
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), // Forme pilule
+              minimumSize: const Size(double.infinity, 60),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               elevation: 8,
-              shadowColor: Colors.deepPurpleAccent.withOpacity(0.5), // Ombre portée lumineuse
+              shadowColor: Colors.deepPurpleAccent.withOpacity(0.5),
             ),
           ),
         );

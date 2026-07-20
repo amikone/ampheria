@@ -19,7 +19,6 @@ class _ProfilePageState extends State<ProfilePage> {
   final supabase = Supabase.instance.client;
   Timer? _debounce;
 
-  // --- State Variables ---
   String _bio = '';
   String _name = '';
   List<String> _photos = [];
@@ -33,7 +32,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   List<String> _tags = [];
 
-  // Nouveau controller spécifique à l'Autocomplete
   TextEditingController? _autocompleteController;
 
   bool _loading = true;
@@ -51,10 +49,6 @@ class _ProfilePageState extends State<ProfilePage> {
     _savePreferences();
     super.dispose();
   }
-
-  // ==========================================
-  // LOGIC & API CALLS
-  // ==========================================
 
   Future<void> _loadInitialData() async {
     await Future.wait([
@@ -508,9 +502,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // ==========================================
-  // UI SECTIONS (Style "Premium Dark")
-  // ==========================================
+
 
   Widget _buildGlassCard({required Widget child}) {
     return Container(
@@ -548,12 +540,10 @@ class _ProfilePageState extends State<ProfilePage> {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            // Retour de l'accent violet sur le contour de l'avatar
             border: Border.all(color: Colors.deepPurpleAccent.withOpacity(0.5), width: 3),
           ),
           child: CircleAvatar(
             radius: 48,
-            // Et sur le fond de l'avatar
             backgroundColor: Colors.deepPurpleAccent,
             child: Text(
               _name.isNotEmpty ? _name.substring(0, 1).toUpperCase() : "?",
@@ -606,7 +596,6 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildPassionsSection() {
     return Container(
       decoration: BoxDecoration(
-        // Fond légèrement teinté pour détacher cette carte
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -615,11 +604,9 @@ class _ProfilePageState extends State<ProfilePage> {
             Colors.white.withOpacity(0.02),
           ],
         ),
-        // Bordure colorée plus épaisse
         border: Border.all(color: Colors.deepPurpleAccent.withOpacity(0.6), width: 1.5),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          // Effet de "Glow" (lueur) pour attirer l'attention
           BoxShadow(
             color: Colors.deepPurpleAccent.withOpacity(0.15),
             blurRadius: 20,
@@ -631,7 +618,6 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER DE LA SECTION
           Row(
             children: [
               Container(
@@ -653,14 +639,12 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 8),
 
-          // PHRASE D'ACCROCHE (Crucial pour l'UX)
           const Text(
             "L'algorithme utilise tes passions pour te trouver les meilleurs profils.",
             style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 20),
 
-          // CHAMP DE RECHERCHE
           Autocomplete<Map<String, dynamic>>(
             displayStringForOption: (option) => option['name'] as String,
             optionsBuilder: (textEditingValue) {
@@ -670,7 +654,6 @@ class _ProfilePageState extends State<ProfilePage> {
             onSelected: (selection) {
               _addTag(selection['name'] as String);
 
-              // On vide le champ avec un très court délai pour écraser le comportement par défaut
               Future.delayed(Duration.zero, () {
                 _autocompleteController?.clear();
               });
@@ -705,7 +688,6 @@ class _ProfilePageState extends State<ProfilePage> {
               );
             },
             fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-              // On sauvegarde la référence du controller
               _autocompleteController = controller;
 
               return TextField(
@@ -745,7 +727,6 @@ class _ProfilePageState extends State<ProfilePage> {
             },
           ),
 
-          // AFFICHAGE DES TAGS EN MODE "PREMIUM"
           if (_tags.isNotEmpty) ...[
             const SizedBox(height: 20),
             Wrap(
@@ -759,7 +740,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // Petit widget séparé pour garder le code propre
   Widget _buildPremiumTag(String tag) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -767,7 +747,7 @@ class _ProfilePageState extends State<ProfilePage> {
         gradient: LinearGradient(
           colors: [
             Colors.deepPurpleAccent.withOpacity(0.8),
-            const Color(0xFF9C27B0).withOpacity(0.8), // Un violet un peu plus rose pour le dégradé
+            const Color(0xFF9C27B0).withOpacity(0.8),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -869,7 +849,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // Nouvelle section préférences complète
   Widget _buildPreferencesSection() {
     return _buildGlassCard(
       child: Column(
@@ -877,7 +856,6 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           _buildSectionTitle("Préférences de rencontre", Icons.tune),
 
-          // --- MON ORIENTATION (affichage profil) ---
           const Text(
             'Mon orientation sexuelle',
             style: TextStyle(
@@ -899,7 +877,6 @@ class _ProfilePageState extends State<ProfilePage> {
               setState(() => _myOrientation = value);
               _onProfileChanged();
 
-              // Auto-suggestion de interested_in
               if (value != null && _myGender != null) {
                 final allGenders =
                 await ReferenceDataService.fetchGenders();
@@ -918,7 +895,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
           const Divider(height: 40, color: Colors.white24),
 
-          // --- JE VEUX RENCONTRER (algorithme) ---
           const Text(
             'Je souhaite rencontrer',
             style: TextStyle(
@@ -986,7 +962,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
           const Divider(height: 40, color: Colors.white24),
 
-          // --- ÂGE ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1022,7 +997,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
           const Divider(height: 40, color: Colors.white24),
 
-          // --- DISTANCE ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1058,7 +1032,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // Banner de suggestion non-invasive
   void _showSuggestionBanner(List<String> suggested) {
     ScaffoldMessenger.of(context).showMaterialBanner(
       MaterialBanner(
@@ -1101,10 +1074,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
-  // ==========================================
-  // MAIN BUILD METHOD
-  // ==========================================
 
   @override
   Widget build(BuildContext context) {
@@ -1170,7 +1139,6 @@ class _ProfilePageState extends State<ProfilePage> {
             _buildPreferencesSection(),
             const SizedBox(height: 40),
 
-            // Bouton de déconnexion stylisé pour le mode sombre
             ElevatedButton.icon(
               onPressed: () => _signOut(context),
               icon: const Icon(Icons.logout),

@@ -101,7 +101,6 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     return Scaffold(
-      // --- STYLE APPBAR MODIFIÉ ---
       appBar: AppBar(
         title: const Text(
           "Mes chats",
@@ -306,11 +305,7 @@ class _ConversationPageState extends State<ConversationPage> {
     if (message is ImageMessage) {
       final filePath = message.metadata?['file_path'];
       if (filePath != null && filePath is String && filePath.isNotEmpty) {
-        try {
           await supabase.storage.from('chat-pictures').remove([filePath]);
-        } catch (e) {
-          // ignore
-        }
       }
     }
   }

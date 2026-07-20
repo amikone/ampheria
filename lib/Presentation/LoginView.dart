@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ampheria/extensions/context_extension.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../main.dart'; // Assurez-vous que cet import pointe bien vers vos fonctions updateUserLocation/Activity
+import '../main.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

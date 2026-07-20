@@ -12,10 +12,8 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Récupération de la couleur principale pour s'adapter au thème (clair/sombre)
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    // Ajout d'une fine bordure en haut pour bien séparer la barre du contenu
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
@@ -29,11 +27,8 @@ class BottomNavBar extends StatelessWidget {
       child: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: onTap,
-        // On rend le fond transparent pour utiliser celui du Container (adaptatif)
         backgroundColor: Colors.transparent,
-        // Retire l'ombre tombante classique pour un style "flat"
         elevation: 0,
-        // La couleur de la petite pilule derrière l'icône sélectionnée
         indicatorColor: primaryColor.withOpacity(0.15),
         destinations: [
           NavigationDestination(

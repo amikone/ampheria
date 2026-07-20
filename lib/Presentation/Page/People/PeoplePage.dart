@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../Widgets/ProfileDetailModal.dart';
@@ -142,11 +141,10 @@ class _PeoplePageState extends State<PeoplePage> {
     final profile = _currentProfile;
     if (profile == null) return;
 
-    final likedId = profile['id']; // Sauvegarde l'ID avant de passer au suivant
+    final likedId = profile['id'];
 
-    _goToNextProfile(); // L'UI se met à jour instantanément !
+    _goToNextProfile();
 
-    // La requête part en fond, sans bloquer l'écran
     supabase.functions.invoke(
       'like-user',
       body: {'liked_id': likedId},
@@ -166,7 +164,6 @@ class _PeoplePageState extends State<PeoplePage> {
     });
     _ensureBuffer();
 
-    // Précharge l'image du prochain profil pour éviter un écran de chargement au swipe
     if (_currentIndex < _profiles.length) {
       final nextProfile = _profiles[_currentIndex];
       final photos = List<String>.from(nextProfile['photos'] ?? []);
@@ -202,7 +199,6 @@ class _PeoplePageState extends State<PeoplePage> {
     if (_loading) return const _LoadingView();
     if (!_isVerified) return const _VerificationPendingView();
 
-    // L'AnimatedSwitcher gère la transition en douceur quand _currentProfile devient null
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 600),
       switchInCurve: Curves.easeOutCubic,
@@ -245,7 +241,6 @@ class _PeoplePageState extends State<PeoplePage> {
   }
 }
 
-// --- NOUVEAU : La carte rotative avec physique et labels visuels ---
 
 class SwipeableProfileCard extends StatefulWidget {
   final Widget child;
@@ -266,7 +261,7 @@ class SwipeableProfileCard extends StatefulWidget {
 class _SwipeableProfileCardState extends State<SwipeableProfileCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  Animation<Offset>? _moveAnimation; // Gère l'animation fluide
+  Animation<Offset>? _moveAnimation;
 
   Offset _offset = Offset.zero;
   double _angle = 0;
@@ -275,7 +270,6 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
   @override
   void initState() {
     super.initState();
-    // Animation super rapide (250ms) pour un effet dynamique
     _controller = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 250));
 
@@ -309,7 +303,6 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
     });
   }
 
-  // Crée l'animation de glissade (soit pour éjecter, soit pour revenir au centre)
   void _animateTo(Offset target, {VoidCallback? onComplete}) {
     _moveAnimation = Tween<Offset>(begin: _offset, end: target).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
@@ -327,13 +320,10 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
     final screenWidth = MediaQuery.of(context).size.width;
 
     if (_offset.dx > screenWidth * 0.30) {
-      // Swipe Droite : on jette la carte loin à droite PUIS on appelle Like
       _animateTo(Offset(screenWidth * 1.5, _offset.dy), onComplete: widget.onLike);
     } else if (_offset.dx < -screenWidth * 0.30) {
-      // Swipe Gauche : on jette la carte loin à gauche PUIS on appelle Dislike
       _animateTo(Offset(-screenWidth * 1.5, _offset.dy), onComplete: widget.onDislike);
     } else {
-      // Annulé : Retour fluide au centre
       _animateTo(Offset.zero);
     }
   }
@@ -401,7 +391,6 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
   }
 }
 
-// --- Bouton Infos (Pilule) ---
 
 class _ProfileDetailButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -451,8 +440,6 @@ class _ProfileDetailButton extends StatelessWidget {
   }
 }
 
-// --- Vues (inchangées) ---
-
 class _VerificationPendingView extends StatelessWidget {
   const _VerificationPendingView();
   @override
@@ -495,8 +482,6 @@ class _LoadingView extends StatelessWidget {
   }
 }
 
-// --- Nouvelle vue "Plus de profils" avec animation Radar ---
-
 class _NoProfileView extends StatefulWidget {
   final VoidCallback onReload;
   const _NoProfileView({super.key, required this.onReload});
@@ -512,7 +497,6 @@ class _NoProfileViewState extends State<_NoProfileView>
   @override
   void initState() {
     super.initState();
-    // Création d'une animation qui boucle (effet de respiration/pulse)
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -533,7 +517,6 @@ class _NoProfileViewState extends State<_NoProfileView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icône animée
             AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
@@ -578,7 +561,6 @@ class _NoProfileViewState extends State<_NoProfileView>
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 40),
-            // Bouton de rechargement style Premium Mat
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
@@ -614,8 +596,6 @@ class _NoProfileViewState extends State<_NoProfileView>
   }
 }
 
-// --- Carte et Infos (inchangées) ---
-
 class _ProfileCard extends StatelessWidget {
   final Map<String, dynamic> profile;
   final int currentPhotoIndex;
@@ -639,7 +619,6 @@ class _ProfileCard extends StatelessWidget {
     return GestureDetector(
       onTapUp: (details) {
         final width = MediaQuery.of(context).size.width;
-        // On garde le tap pour changer de photo (ça ne rentre pas en conflit avec le swipe qui utilise Pan)
         if (details.localPosition.dx < width / 3) {
           onPreviousPhoto();
         } else if (details.localPosition.dx > width * 2 / 3) {
