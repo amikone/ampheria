@@ -1,51 +1,26 @@
+import 'package:ampheria/providers/profile_providers.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ampheria/extensions/context_extension.dart';
 import 'view/profile_page.dart';
 import 'view/profile_setup.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  Future<bool> _isProfileComplete() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return false;
-
-    final res = await Supabase.instance.client
-        .from('profiles')
-        .select('birth_date, full_name, city, gender')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    if (res == null) {
-      await Supabase.instance.client.from('profiles').insert({
-        'id': user.id,
-        'username': user.email,
-        'created_at': DateTime.now().toIso8601String(),
-      });
-      return false;
-    }
-
-    final isNameValid = res['full_name'] != null && (res['full_name'] as String).trim().isNotEmpty;
-    final isGenderValid = res['gender'] != null && (res['gender'] as String).trim().isNotEmpty;
-    final isDateValid = res['birth_date'] != null;
-    final isCityValid = res['city'] != null && (res['city'] as String).trim().isNotEmpty;
-
-    return isNameValid && isGenderValid && isDateValid && isCityValid;
-  }
-
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _goToSetup() async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const ProfileSetupPage()),
     );
     setState(() {});
+    ref.invalidate(profileCompletionProvider);
   }
-
 
   Widget _buildGlassCard({required Widget child}) {
     return Container(
@@ -81,9 +56,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
-                "Profil Incomplet",
-                style: TextStyle(
+              Text(
+                context.localizations.incompleteProfileTitle,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -91,9 +66,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              const Text(
-                "Complétez votre profil pour débloquer toutes les fonctionnalités et faire de belles rencontres.",
-                style: TextStyle(
+              Text(
+                context.localizations.incompleteProfileDesc,
+                style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 15,
                   height: 1.4,
@@ -106,9 +81,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _goToSetup,
                   icon: const Icon(Icons.edit_outlined, size: 20),
-                  label: const Text(
-                    "Compléter mon profil",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  label: Text(
+                    context.localizations.completeMyProfile,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurpleAccent,
@@ -130,30 +105,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final profileAsync = ref.watch(profileCompletionProvider);
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
-      body: FutureBuilder<bool>(
-        future: _isProfileComplete(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: Colors.deepPurpleAccent,
-              ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return const Center(
-              child: Text(
-                "Une erreur est survenue.",
-                style: TextStyle(color: Colors.white70),
-              ),
-            );
-          }
-
-          final isComplete = snapshot.data ?? false;
-
+      body: profileAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(
+            color: Colors.deepPurpleAccent,
+          ),
+        ),
+        error: (error, stack) => Center(
+          child: Text(
+            context.localizations.genericError,
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ),
+        data: (isComplete) {
           if (isComplete) {
             return const ProfilePage();
           } else {

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ampheria/presentation/widgets/gender_selector.dart';
 
+import '../../../../extensions/context_extension.dart';
+
 class ProfileSetupPage extends StatefulWidget {
   const ProfileSetupPage({super.key});
 
@@ -40,7 +42,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   Future<String?> _validatePhoneNumber(String phone) async {
     if (phone.isEmpty) return null;
 
-
     final bytes = utf8.encode(phone);
     final hash = sha256.convert(bytes).toString();
 
@@ -52,13 +53,12 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
           .maybeSingle();
 
       if (blacklistMatch != null) {
-        return "Ce numéro de téléphone est banni de la plateforme.";
+        return context.localizations.phoneBannedError;
       }
-
 
       return null;
     } catch (e) {
-      return "Erreur lors de la vérification du numéro.";
+      return context.localizations.phoneCheckError;
     }
   }
 
@@ -80,11 +80,11 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   void _nextStep() {
     if (!_canGoToNextStep()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           backgroundColor: Colors.redAccent,
           content: Text(
-            'Veuillez remplir les champs requis pour continuer.',
-            style: TextStyle(color: Colors.white),
+            context.localizations.fillRequiredFields,
+            style: const TextStyle(color: Colors.white),
           ),
         ),
       );
@@ -132,7 +132,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         }
       }
 
-
       await supabase.from('profiles').update({
         'full_name': _fullNameController.text.trim(),
         'birth_date': _birthDateController.text,
@@ -145,7 +144,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
           await supabase.auth.updateUser(UserAttributes(phone: phone));
         } catch (authError) {
           if (authError.toString().contains('already exists')) {
-            throw "Ce numéro est déjà rattaché à un autre compte.";
+            throw context.localizations.phoneAlreadyInUse;
           }
           rethrow;
         }
@@ -166,7 +165,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       if (mounted) setState(() => _loading = false);
     }
   }
-
 
   Widget _buildGlassCard({required Widget child}) {
     return Container(
@@ -202,16 +200,14 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         prefixIcon: icon != null ? Icon(icon, color: Colors.white54) : null,
         filled: true,
         fillColor: Colors.black26,
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide:
-          const BorderSide(color: Colors.deepPurpleAccent, width: 1.5),
+          borderSide: const BorderSide(color: Colors.deepPurpleAccent, width: 1.5),
         ),
       ),
     );
@@ -239,7 +235,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     );
   }
 
-
   Widget _buildStep1Name() {
     return SingleChildScrollView(
       child: _buildGlassCard(
@@ -247,12 +242,12 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionTitle(
-              'Faisons connaissance',
-              'Comment doit-on vous appeler ?',
+              context.localizations.step1Title,
+              context.localizations.step1Subtitle,
             ),
             _buildGlassTextField(
               controller: _fullNameController,
-              hintText: 'Votre prénom',
+              hintText: context.localizations.firstNameHint,
               icon: Icons.person_outline_rounded,
             ),
           ],
@@ -268,12 +263,12 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionTitle(
-              'Un peu plus sur vous',
-              'Il faut avoir au moins 18 ans pour s\'inscrire.',
+              context.localizations.step2Title,
+              context.localizations.step2Subtitle,
             ),
             _buildGlassTextField(
               controller: _birthDateController,
-              hintText: 'Date de naissance',
+              hintText: context.localizations.birthDateHint,
               icon: Icons.calendar_today_outlined,
               readOnly: true,
               onTap: () async {
@@ -310,9 +305,9 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
               },
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Votre genre',
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+            Text(
+              context.localizations.yourGender,
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 12),
             GenderSelector(
@@ -334,12 +329,12 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionTitle(
-              'Où êtes-vous ?',
-              'Pour rencontrer des personnes autour de vous.',
+              context.localizations.step3Title,
+              context.localizations.step3Subtitle,
             ),
             _buildGlassTextField(
               controller: _cityController,
-              hintText: 'Votre ville',
+              hintText: context.localizations.cityHint,
               icon: Icons.location_on_outlined,
             ),
           ],
@@ -355,10 +350,9 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionTitle(
-              'Votre numéro',
-              'Optionnel — vous pourrez le renseigner plus tard.',
+              context.localizations.step4Title,
+              context.localizations.step4Subtitle,
             ),
-
             _PhoneInputField(
               onChanged: (fullNumber) {
                 _phoneController.text = fullNumber;
@@ -458,8 +452,8 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   )
                       : Text(
                     _currentStep == _totalSteps - 1
-                        ? 'Terminer'
-                        : 'Continuer',
+                        ? context.localizations.finish
+                        : context.localizations.continueAction,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -475,7 +469,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 }
 
-
 class _PhoneInputField extends StatefulWidget {
   final ValueChanged<String> onChanged;
 
@@ -488,30 +481,26 @@ class _PhoneInputField extends StatefulWidget {
 class _PhoneInputFieldState extends State<_PhoneInputField> {
   final _numberController = TextEditingController();
 
-  final List<Map<String, String>> _countries = [
-    {'flag': '🇫🇷', 'name': 'France',       'code': '+33'},
-    {'flag': '🇧🇪', 'name': 'Belgique',     'code': '+32'},
-    {'flag': '🇨🇭', 'name': 'Suisse',       'code': '+41'},
-    {'flag': '🇱🇺', 'name': 'Luxembourg',   'code': '+352'},
-    {'flag': '🇨🇦', 'name': 'Canada',       'code': '+1'},
-    {'flag': '🇺🇸', 'name': 'États-Unis',   'code': '+1'},
-    {'flag': '🇬🇧', 'name': 'Royaume-Uni',  'code': '+44'},
-    {'flag': '🇩🇪', 'name': 'Allemagne',    'code': '+49'},
-    {'flag': '🇪🇸', 'name': 'Espagne',      'code': '+34'},
-    {'flag': '🇮🇹', 'name': 'Italie',       'code': '+39'},
-    {'flag': '🇵🇹', 'name': 'Portugal',     'code': '+351'},
-    {'flag': '🇲🇦', 'name': 'Maroc',        'code': '+212'},
-    {'flag': '🇩🇿', 'name': 'Algérie',      'code': '+213'},
-    {'flag': '🇹🇳', 'name': 'Tunisie',      'code': '+216'},
+  List<Map<String, String>> get _countries => [
+    {'flag': '🇫🇷', 'name': context.localizations.countryFrance,        'code': '+33'},
+    {'flag': '🇧🇪', 'name': context.localizations.countryBelgium,      'code': '+32'},
+    {'flag': '🇨🇭', 'name': context.localizations.countrySwitzerland,  'code': '+41'},
+    {'flag': '🇱🇺', 'name': context.localizations.countryLuxembourg,   'code': '+352'},
+    {'flag': '🇨🇦', 'name': context.localizations.countryCanada,       'code': '+1'},
+    {'flag': '🇺🇸', 'name': context.localizations.countryUSA,          'code': '+1'},
+    {'flag': '🇬🇧', 'name': context.localizations.countryUK,           'code': '+44'},
+    {'flag': '🇩🇪', 'name': context.localizations.countryGermany,      'code': '+49'},
+    {'flag': '🇪🇸', 'name': context.localizations.countrySpain,        'code': '+34'},
+    {'flag': '🇮🇹', 'name': context.localizations.countryItaly,        'code': '+39'},
+    {'flag': '🇵🇹', 'name': context.localizations.countryPortugal,     'code': '+351'},
+    {'flag': '🇲🇦', 'name': context.localizations.countryMorocco,      'code': '+212'},
+    {'flag': '🇩🇿', 'name': context.localizations.countryAlgeria,      'code': '+213'},
+    {'flag': '🇹🇳', 'name': context.localizations.countryTunisia,      'code': '+216'},
   ];
 
-  late Map<String, String> _selectedCountry;
+  Map<String, String>? _selectedCountryState;
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedCountry = _countries.first;
-  }
+  Map<String, String> get _selectedCountry => _selectedCountryState ?? _countries.first;
 
   @override
   void dispose() {
@@ -519,9 +508,9 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
     super.dispose();
   }
 
-  String _buildFullNumber(String localNumber) {
-    final code = _selectedCountry['code']!;
-    String digits = localNumber.replaceAll(RegExp(r'\D'), ''); // chiffres only
+  String _buildFullNumber(String localNumber, Map<String, String> country) {
+    final code = country['code']!;
+    String digits = localNumber.replaceAll(RegExp(r'\D'), '');
 
     if (digits.startsWith('0')) {
       digits = digits.substring(1);
@@ -531,7 +520,7 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
   }
 
   void _notify() {
-    final full = _buildFullNumber(_numberController.text);
+    final full = _buildFullNumber(_numberController.text, _selectedCountry);
     widget.onChanged(full);
   }
 
@@ -569,7 +558,7 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
                   ? Colors.deepPurpleAccent.withOpacity(0.15)
                   : Colors.transparent,
               onTap: () {
-                setState(() => _selectedCountry = country);
+                setState(() => _selectedCountryState = country);
                 _notify();
                 Navigator.pop(context);
               },
@@ -633,7 +622,6 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
                   ),
                 ),
               ),
-
               Expanded(
                 child: TextField(
                   controller: _numberController,
@@ -654,13 +642,12 @@ class _PhoneInputFieldState extends State<_PhoneInputField> {
             ],
           ),
         ),
-
         if (_numberController.text.isNotEmpty) ...[
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Text(
-              'Format enregistré : ${_buildFullNumber(_numberController.text)}',
+              '${context.localizations.savedFormat} ${_buildFullNumber(_numberController.text, _selectedCountry)}',
               style: const TextStyle(
                 color: Colors.white38,
                 fontSize: 12,

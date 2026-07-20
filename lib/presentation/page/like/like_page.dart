@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ampheria/presentation/widgets/profile_detail_modal.dart';
+import 'package:ampheria/extensions/context_extension.dart';
 
 class LikePage extends StatefulWidget {
   const LikePage({super.key});
@@ -58,10 +59,10 @@ class _LikePageState extends State<LikePage> {
           .match({'liked_id': user.id, 'liker_id': likerId});
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Like refusé')),
+        SnackBar(content: Text(context.localizations.likeRejected)),
       );
       setState(() {
-        _likesFuture = _fetchLikes(); // simple refetch
+        _likesFuture = _fetchLikes();
       });
     } catch (e) {
       debugPrint('Erreur delete like: $e');
@@ -76,7 +77,7 @@ class _LikePageState extends State<LikePage> {
       await supabase.functions.invoke('like-user', body: {'liked_id': likedId});
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('💖 Vous avez liké cette personne')),
+        SnackBar(content: Text(context.localizations.likeBackSuccess)),
       );
       setState(() {
         _likesFuture = _fetchLikes();
@@ -90,9 +91,9 @@ class _LikePageState extends State<LikePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Likes reçus',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          context.localizations.receivedLikesTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         elevation: 0,
@@ -111,10 +112,10 @@ class _LikePageState extends State<LikePage> {
 
           final likes = snapshot.data ?? [];
           if (likes.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                "Aucun like pour le moment 😢",
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                context.localizations.noLikesYet,
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
             );
           }
@@ -136,7 +137,7 @@ class _LikePageState extends State<LikePage> {
                     ? photos[0]
                     : 'https://via.placeholder.com/400x400?text=No+Photo';
                 final fullName =
-                    profile['full_name'] ?? profile['username'] ?? 'Utilisateur';
+                    profile['full_name'] ?? profile['username'] ?? context.localizations.defaultUserName;
                 final city = profile['city'] ?? '';
 
                 return GestureDetector(

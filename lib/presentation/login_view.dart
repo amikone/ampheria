@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vérifiez vos emails pour confirmer votre compte')),
+            SnackBar(content: Text(context.localizations.verifyEmail)),
           );
         }
       }
@@ -209,7 +209,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
 
                 _SocialButton(
-                  icon: Icons.g_mobiledata, // On peut utiliser une image ou FontAwesome si dispo
+                  icon: Icons.g_mobiledata,
                   label: context.localizations.loginWithGoogle,
                   onPressed: () => _handleSocialSignIn(OAuthProvider.google),
                 ),

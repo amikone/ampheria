@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ampheria/services/reference_data_service.dart';
 import 'package:ampheria/presentation/widgets/orientation_selector.dart';
+import 'package:ampheria/extensions/context_extension.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -108,7 +109,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_photos.length >= 8) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vous ne pouvez pas avoir plus de 8 photos.")),
+        SnackBar(content: Text(context.localizations.maxPhotosError)),
       );
       return;
     }
@@ -129,7 +130,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (compressedBytes.length > maxSize) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("L'image dépasse 2 Mo")),
+        SnackBar(content: Text(context.localizations.imageTooLargeError)),
       );
       return;
     }
@@ -148,13 +149,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Image ajoutée !")),
+          SnackBar(content: Text(context.localizations.imageAddedSuccess)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur: $e")),
+          SnackBar(content: Text(context.localizations.error(e.toString()))),
         );
       }
     }
@@ -173,13 +174,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Photo supprimée")),
+          SnackBar(content: Text(context.localizations.photoDeletedSuccess)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur lors de la suppression: $e")),
+          SnackBar(content: Text("${context.localizations.photoDeleteError} $e")),
         );
       }
     }
@@ -255,7 +256,7 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) {
         setState(() => _tags.remove(cleanName));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erreur lors de l'ajout du tag : $e")),
+          SnackBar(content: Text("${context.localizations.tagAddError} $e")),
         );
       }
     }
@@ -346,7 +347,7 @@ class _ProfilePageState extends State<ProfilePage> {
             return AlertDialog(
               backgroundColor: const Color(0xFF1E1E1E),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('Changer le mot de passe', style: TextStyle(color: Colors.white)),
+              title: Text(context.localizations.changePasswordTitle, style: const TextStyle(color: Colors.white)),
               content: Form(
                 key: formKey,
                 child: Column(
@@ -357,14 +358,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       obscureText: true,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        labelText: 'Nouveau mot de passe',
+                        labelText: context.localizations.newPasswordLabel,
                         labelStyle: const TextStyle(color: Colors.white54),
                         enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
                         focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.deepPurpleAccent)),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
                       ),
-                      validator: (value) => value == null || value.length < 6 ? 'Au moins 6 caractères requis' : null,
+                      validator: (value) => value == null || value.length < 6 ? context.localizations.passwordMinLengthError : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -372,14 +373,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       obscureText: true,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        labelText: 'Confirmer',
+                        labelText: context.localizations.confirmPasswordLabel,
                         labelStyle: const TextStyle(color: Colors.white54),
                         enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
                         focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.deepPurpleAccent)),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.05),
                       ),
-                      validator: (value) => value != passwordController.text ? 'Les mots de passe diffèrent' : null,
+                      validator: (value) => value != passwordController.text ? context.localizations.passwordsDoNotMatchError : null,
                     ),
                   ],
                 ),
@@ -387,7 +388,7 @@ class _ProfilePageState extends State<ProfilePage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
+                  child: Text(context.localizations.cancel, style: const TextStyle(color: Colors.white70)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -402,13 +403,13 @@ class _ProfilePageState extends State<ProfilePage> {
                         if (context.mounted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Mot de passe mis à jour !"), backgroundColor: Colors.green),
+                            SnackBar(content: Text(context.localizations.passwordUpdatedSuccess), backgroundColor: Colors.green),
                           );
                         }
                       } catch (e) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Erreur: ${e.toString()}"), backgroundColor: Colors.red),
+                            SnackBar(content: Text(context.localizations.error(e.toString())), backgroundColor: Colors.red),
                           );
                         }
                       } finally {
@@ -418,7 +419,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                   child: isUpdatingPassword
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                      : const Text('Valider', style: TextStyle(fontWeight: FontWeight.bold)),
+                      : Text(context.localizations.validate, style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -427,7 +428,6 @@ class _ProfilePageState extends State<ProfilePage> {
       },
     );
   }
-
 
   Future<void> _showDeleteAccountDialog() async {
     bool isDeleting = false;
@@ -440,21 +440,21 @@ class _ProfilePageState extends State<ProfilePage> {
             return AlertDialog(
               backgroundColor: const Color(0xFF1E1E1E),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-                  SizedBox(width: 8),
-                  Text('Supprimer le compte', style: TextStyle(color: Colors.redAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                  const SizedBox(width: 8),
+                  Text(context.localizations.deleteAccountTitle, style: const TextStyle(color: Colors.redAccent, fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),
-              content: const Text(
-                'Es-tu sûr de vouloir supprimer définitivement ton compte ? Cette action est irréversible et ton numéro de téléphone sera bloqué pour de futures inscriptions.',
-                style: TextStyle(color: Colors.white70, height: 1.4),
+              content: Text(
+                context.localizations.deleteAccountWarning,
+                style: const TextStyle(color: Colors.white70, height: 1.4),
               ),
               actions: [
                 TextButton(
                   onPressed: isDeleting ? null : () => Navigator.pop(context),
-                  child: const Text('Annuler', style: TextStyle(color: Colors.white70)),
+                  child: Text(context.localizations.cancel, style: const TextStyle(color: Colors.white70)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -464,18 +464,15 @@ class _ProfilePageState extends State<ProfilePage> {
                   onPressed: isDeleting ? null : () async {
                     setStateDialog(() => isDeleting = true);
                     try {
-                      // 1. Appel de notre super fonction RPC qui supprime + blacklist le tel
                       await supabase.rpc('delete_user');
-
-                      // 2. Déconnexion
                       await supabase.auth.signOut();
 
                       if (context.mounted) {
-                        Navigator.pop(context); // Ferme le dialog
+                        Navigator.pop(context);
                         Navigator.pushReplacementNamed(context, '/login');
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text("Ton compte a été définitivement supprimé."),
+                          SnackBar(
+                              content: Text(context.localizations.accountDeletedSuccess),
                               backgroundColor: Colors.green
                           ),
                         );
@@ -483,7 +480,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Erreur: ${e.toString()}"), backgroundColor: Colors.red),
+                          SnackBar(content: Text(context.localizations.error(e.toString())), backgroundColor: Colors.red),
                         );
                       }
                     } finally {
@@ -492,7 +489,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                   child: isDeleting
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Confirmer', style: TextStyle(fontWeight: FontWeight.bold)),
+                      : Text(context.localizations.confirm, style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -501,8 +498,6 @@ class _ProfilePageState extends State<ProfilePage> {
       },
     );
   }
-
-
 
   Widget _buildGlassCard({required Widget child}) {
     return Container(
@@ -566,7 +561,7 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle("À propos de moi", Icons.person_outline),
+          _buildSectionTitle(context.localizations.aboutMeTitle, Icons.person_outline),
           TextFormField(
             initialValue: _bio,
             maxLines: 3,
@@ -579,7 +574,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              hintText: "Parle un peu de toi...",
+              hintText: context.localizations.aboutMeHint,
               hintStyle: const TextStyle(color: Colors.white38),
               counterStyle: const TextStyle(color: Colors.white54),
             ),
@@ -629,19 +624,19 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: const Icon(Icons.local_fire_department, color: Colors.orangeAccent, size: 24),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  "Mes Passions",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  context.localizations.myPassionsTitle,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
 
-          const Text(
-            "L'algorithme utilise tes passions pour te trouver les meilleurs profils.",
-            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+          Text(
+            context.localizations.passionsDescription,
+            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 20),
 
@@ -676,7 +671,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         return ListTile(
                           title: Text(option['name'] as String, style: const TextStyle(color: Colors.white)),
                           trailing: Text(
-                            "${option['count']} adepte(s)",
+                            "${option['count']} ${context.localizations.followersCount}",
                             style: const TextStyle(fontSize: 12, color: Colors.deepPurpleAccent, fontWeight: FontWeight.bold),
                           ),
                           onTap: () => onSelected(option),
@@ -695,10 +690,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 focusNode: focusNode,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Ex: Escalade, Cinéma coréen...',
+                  hintText: context.localizations.passionsHint,
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
-                  fillColor: Colors.black45, // Fond plus sombre pour contraster avec la carte
+                  fillColor: Colors.black45,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Colors.deepPurpleAccent.withOpacity(0.3)),
@@ -794,7 +789,7 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle("Mes photos", Icons.photo_library_outlined),
+          _buildSectionTitle(context.localizations.myPhotosTitle, Icons.photo_library_outlined),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -854,20 +849,20 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle("Préférences de rencontre", Icons.tune),
+          _buildSectionTitle(context.localizations.datingPreferencesTitle, Icons.tune),
 
-          const Text(
-            'Mon orientation sexuelle',
-            style: TextStyle(
+          Text(
+            context.localizations.myOrientationLabel,
+            style: const TextStyle(
               fontWeight: FontWeight.w600,
               color: Colors.white,
               fontSize: 14,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Affiché sur ton profil public',
-            style: TextStyle(color: Colors.white38, fontSize: 12),
+          Text(
+            context.localizations.displayedOnPublicProfile,
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
           ),
           const SizedBox(height: 12),
 
@@ -895,18 +890,18 @@ class _ProfilePageState extends State<ProfilePage> {
 
           const Divider(height: 40, color: Colors.white24),
 
-          const Text(
-            'Je souhaite rencontrer',
-            style: TextStyle(
+          Text(
+            context.localizations.iWantToMeetLabel,
+            style: const TextStyle(
               fontWeight: FontWeight.w600,
               color: Colors.white,
               fontSize: 14,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Utilisé par l\'algorithme pour te montrer des profils',
-            style: TextStyle(color: Colors.white38, fontSize: 12),
+          Text(
+            context.localizations.usedByAlgorithmForProfiles,
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
           ),
           const SizedBox(height: 12),
 
@@ -965,15 +960,15 @@ class _ProfilePageState extends State<ProfilePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "Tranche d'âge",
-                style: TextStyle(
+              Text(
+                context.localizations.ageRangeLabel,
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
               ),
               Text(
-                "${_minAge.round()} - ${_maxAge.round()} ans",
+                "${_minAge.round()} - ${_maxAge.round()} ${context.localizations.ageYears}",
                 style: const TextStyle(
                   color: Colors.deepPurpleAccent,
                   fontWeight: FontWeight.bold,
@@ -1000,15 +995,15 @@ class _ProfilePageState extends State<ProfilePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                "Distance maximale",
-                style: TextStyle(
+              Text(
+                context.localizations.maxDistanceLabel,
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
               ),
               Text(
-                "${_maxDistance.round()} km",
+                "${_maxDistance.round()} ${context.localizations.distanceKm}",
                 style: const TextStyle(
                   color: Colors.deepPurpleAccent,
                   fontWeight: FontWeight.bold,
@@ -1037,7 +1032,7 @@ class _ProfilePageState extends State<ProfilePage> {
       MaterialBanner(
         backgroundColor: const Color(0xFF1E1B2E),
         content: Text(
-          'Appliquer la suggestion : ${suggested.join(', ')} ?',
+          '${context.localizations.applySuggestionPrompt} ${suggested.join(', ')} ?',
           style: const TextStyle(color: Colors.white70),
         ),
         leading: const Icon(
@@ -1050,9 +1045,9 @@ class _ProfilePageState extends State<ProfilePage> {
               ScaffoldMessenger.of(context)
                   .hideCurrentMaterialBanner();
             },
-            child: const Text(
-              'Ignorer',
-              style: TextStyle(color: Colors.white54),
+            child: Text(
+              context.localizations.ignore,
+              style: const TextStyle(color: Colors.white54),
             ),
           ),
           TextButton(
@@ -1062,9 +1057,9 @@ class _ProfilePageState extends State<ProfilePage> {
               ScaffoldMessenger.of(context)
                   .hideCurrentMaterialBanner();
             },
-            child: const Text(
-              'Appliquer',
-              style: TextStyle(
+            child: Text(
+              context.localizations.apply,
+              style: const TextStyle(
                 color: Colors.deepPurpleAccent,
                 fontWeight: FontWeight.bold,
               ),
@@ -1078,9 +1073,9 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212), // Fond noir profond coordonné avec PeoplePage
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Profil', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text(context.localizations.profileTitle, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -1088,7 +1083,7 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.settings, color: Colors.white),
-            color: const Color(0xFF1E1B2E), // Fond du menu raccord avec ton thème
+            color: const Color(0xFF1E1B2E),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (value) {
               if (value == 'password') {
@@ -1098,24 +1093,24 @@ class _ProfilePageState extends State<ProfilePage> {
               }
             },
             itemBuilder: (BuildContext context) => [
-              const PopupMenuItem<String>(
+              PopupMenuItem<String>(
                 value: 'password',
                 child: Row(
                   children: [
-                    Icon(Icons.lock_outline, color: Colors.white70, size: 20),
-                    SizedBox(width: 12),
-                    Text('Changer le mot de passe', style: TextStyle(color: Colors.white)),
+                    const Icon(Icons.lock_outline, color: Colors.white70, size: 20),
+                    const SizedBox(width: 12),
+                    Text(context.localizations.changePasswordTitle, style: const TextStyle(color: Colors.white)),
                   ],
                 ),
               ),
-              const PopupMenuDivider(height: 1), // Ligne séparatrice
-              const PopupMenuItem<String>(
+              const PopupMenuDivider(height: 1),
+              PopupMenuItem<String>(
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_forever, color: Colors.redAccent, size: 20),
-                    SizedBox(width: 12),
-                    Text('Supprimer mon compte', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                    const Icon(Icons.delete_forever, color: Colors.redAccent, size: 20),
+                    const SizedBox(width: 12),
+                    Text(context.localizations.deleteMyAccount, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -1142,7 +1137,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ElevatedButton.icon(
               onPressed: () => _signOut(context),
               icon: const Icon(Icons.logout),
-              label: const Text('Se déconnecter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              label: Text(context.localizations.logout, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent.withOpacity(0.1),
                 foregroundColor: Colors.redAccent,

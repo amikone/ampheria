@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../extensions/context_extension.dart';
+
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -34,27 +36,27 @@ class BottomNavBar extends StatelessWidget {
           NavigationDestination(
             icon: const Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people, color: primaryColor),
-            label: 'People',
+            label: context.localizations.navPeople,
           ),
           NavigationDestination(
             icon: const Icon(Icons.favorite_outline),
             selectedIcon: Icon(Icons.favorite, color: primaryColor),
-            label: 'Like',
+            label: context.localizations.navLike,
           ),
           NavigationDestination(
             icon: const Icon(Icons.chat_bubble_outline),
             selectedIcon: Icon(Icons.chat_bubble, color: primaryColor),
-            label: 'Chat',
+            label: context.localizations.navChat,
           ),
           NavigationDestination(
             icon: const Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person, color: primaryColor),
-            label: 'Profil',
+            label: context.localizations.navProfile,
           ),
           NavigationDestination(
             icon: const Icon(Icons.volunteer_activism_outlined),
             selectedIcon: Icon(Icons.volunteer_activism, color: primaryColor),
-            label: 'Health',
+            label: context.localizations.navHealth,
           ),
         ],
       ),

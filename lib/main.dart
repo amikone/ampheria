@@ -7,6 +7,7 @@ import 'package:ampheria/presentation/page/profile/profile_screen.dart';
 import 'package:ampheria/presentation/widgets/bottom_nav_bar.dart';
 import 'package:ampheria/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -17,7 +18,8 @@ Future<void> main() async {
     url: 'https://amikone.endide.com',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY0NzE2NDAwLCJleHAiOjE5MjI0ODI4MDB9.feIlUK_yvMG3IsfIVWkdeo7f0NHHNqWOacuAhU4rBUU',
   );
-  runApp(const MyApp());
+  runApp(const ProviderScope(
+  child: MyApp()));
 }
 
 Future<void> updateUserLocation() async {

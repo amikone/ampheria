@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ampheria/presentation/widgets/profile_detail_modal.dart';
+import 'package:ampheria/extensions/context_extension.dart';
 
 class PeoplePage extends StatefulWidget {
   const PeoplePage({super.key});
@@ -209,7 +210,7 @@ class _PeoplePageState extends State<PeoplePage> {
         onReload: _initializePage,
       )
           : Stack(
-        key: const ValueKey('cards_view'), // Clé importante pour l'animation
+        key: const ValueKey('cards_view'),
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 12.0, right: 12.0, top: 12.0, bottom: 85.0),
@@ -240,7 +241,6 @@ class _PeoplePageState extends State<PeoplePage> {
     );
   }
 }
-
 
 class SwipeableProfileCard extends StatefulWidget {
   final Widget child;
@@ -351,7 +351,7 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
                   left: 30,
                   child: Transform.rotate(
                     angle: -0.2,
-                    child: _buildStamp("LIKE", const Color(0xFF4CAF50), likeOpacity),
+                    child: _buildStamp(context.localizations.swipeLike, const Color(0xFF4CAF50), likeOpacity),
                   ),
                 ),
 
@@ -361,7 +361,7 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
                   right: 30,
                   child: Transform.rotate(
                     angle: 0.2,
-                    child: _buildStamp("NOPE", const Color(0xFFF44336), dislikeOpacity),
+                    child: _buildStamp(context.localizations.swipeNope, const Color(0xFFF44336), dislikeOpacity),
                   ),
                 ),
             ],
@@ -391,7 +391,6 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
   }
 }
 
-
 class _ProfileDetailButton extends StatelessWidget {
   final VoidCallback onPressed;
 
@@ -415,16 +414,16 @@ class _ProfileDetailButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(30),
           onTap: onPressed,
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 14.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 14.0),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.info_outline_rounded, color: Colors.black87, size: 22),
-                SizedBox(width: 8),
+                const Icon(Icons.info_outline_rounded, color: Colors.black87, size: 22),
+                const SizedBox(width: 8),
                 Text(
-                  "Voir le profil",
-                  style: TextStyle(
+                  context.localizations.viewProfile,
+                  style: const TextStyle(
                     color: Colors.black87,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -452,14 +451,14 @@ class _VerificationPendingView extends StatelessWidget {
           children: [
             const Icon(Icons.shield_moon_outlined, size: 60, color: Colors.deepPurpleAccent),
             const SizedBox(height: 24),
-            const Text(
-              "Vérification en cours",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+            Text(
+              context.localizations.verificationPending,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             Text(
-              "Ton compte n’a pas encore été validé. Nous vérifions les comptes au plus vite afin d’éviter les bots. Cela devrait prendre environ 24 heures. N’hésite pas à bien compléter ton profil pour accélérer le processus.",
+              context.localizations.verificationDescription,
               style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.7)),
               textAlign: TextAlign.center,
             ),
@@ -521,7 +520,7 @@ class _NoProfileViewState extends State<_NoProfileView>
               animation: _controller,
               builder: (context, child) {
                 return Transform.scale(
-                  scale: 1.0 + (_controller.value * 0.15), // Grandit de 15%
+                  scale: 1.0 + (_controller.value * 0.15),
                   child: Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -533,7 +532,7 @@ class _NoProfileViewState extends State<_NoProfileView>
                       ),
                     ),
                     child: const Icon(
-                      Icons.wifi_tethering_rounded, // Icône style radar
+                      Icons.wifi_tethering_rounded,
                       size: 50,
                       color: Colors.white70,
                     ),
@@ -542,9 +541,9 @@ class _NoProfileViewState extends State<_NoProfileView>
               },
             ),
             const SizedBox(height: 32),
-            const Text(
-              "Tu as fait le tour !",
-              style: TextStyle(
+            Text(
+              context.localizations.noMoreProfilesTitle,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -552,7 +551,7 @@ class _NoProfileViewState extends State<_NoProfileView>
             ),
             const SizedBox(height: 12),
             Text(
-              "Reviens plus tard pour découvrir de nouvelles personnes dans ton secteur.",
+              context.localizations.noMoreProfilesDesc,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.6),
                 fontSize: 16,
@@ -573,14 +572,14 @@ class _NoProfileViewState extends State<_NoProfileView>
                 shadowColor: Colors.black.withOpacity(0.5),
               ),
               onPressed: widget.onReload,
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.refresh_rounded, size: 22),
-                  SizedBox(width: 8),
+                  const Icon(Icons.refresh_rounded, size: 22),
+                  const SizedBox(width: 8),
                   Text(
-                    "Chercher à nouveau",
-                    style: TextStyle(
+                    context.localizations.searchAgain,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
@@ -778,7 +777,7 @@ class _ProfileInfoOverlay extends StatelessWidget {
           ),
         const SizedBox(height: 12),
         Text(
-          profile['bio'] ?? 'Aucune description',
+          profile['bio'] ?? context.localizations.noDescription,
           style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 15, height: 1.4),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,

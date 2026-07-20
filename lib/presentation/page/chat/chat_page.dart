@@ -15,6 +15,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:uuid/uuid.dart';
 
 import 'package:ampheria/presentation/widgets/profile_detail_modal.dart';
+import 'package:ampheria/extensions/context_extension.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -75,7 +76,7 @@ class _ChatPageState extends State<ChatPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Match supprimé avec succès.")),
+          SnackBar(content: Text(context.localizations.matchDeletedSuccess)),
         );
       }
     } catch (e) {
@@ -84,8 +85,8 @@ class _ChatPageState extends State<ChatPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text("Impossible de supprimer le match. Veuillez réessayer."),
+          SnackBar(
+              content: Text(context.localizations.matchDeleteErrorRetry),
               backgroundColor: Colors.red),
         );
       }
@@ -102,19 +103,19 @@ class _ChatPageState extends State<ChatPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Mes chats",
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          context.localizations.myChatsTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
       body: _conversations.isEmpty
-          ? const Center(
+          ? Center(
         child: Text(
-          "Tu n'as aucune conversation pour le moment",
-          style: TextStyle(fontSize: 14, color: Colors.grey),
+          context.localizations.noConversationsYet,
+          style: const TextStyle(fontSize: 14, color: Colors.grey),
         ),
       )
           : ListView.builder(
@@ -260,7 +261,7 @@ class _ConversationPageState extends State<ConversationPage> {
 
   Future<User> _resolveUser(String userId) async {
     if (userId == _currentUserId) {
-      return User(id: _currentUserId, name: 'Me');
+      return User(id: _currentUserId, name: context.localizations.me);
     } else {
       return User(
         id: userId,
@@ -278,17 +279,17 @@ class _ConversationPageState extends State<ConversationPage> {
     showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer ce message ?'),
-        content: const Text('Cette action est irréversible.'),
+        title: Text(context.localizations.deleteMessageTitle),
+        content: Text(context.localizations.irreversibleAction),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(context.localizations.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
+            child: Text(context.localizations.delete),
           ),
         ],
       ),
@@ -305,7 +306,7 @@ class _ConversationPageState extends State<ConversationPage> {
     if (message is ImageMessage) {
       final filePath = message.metadata?['file_path'];
       if (filePath != null && filePath is String && filePath.isNotEmpty) {
-          await supabase.storage.from('chat-pictures').remove([filePath]);
+        await supabase.storage.from('chat-pictures').remove([filePath]);
       }
     }
   }
@@ -314,17 +315,17 @@ class _ConversationPageState extends State<ConversationPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer ce match ?'),
-        content: const Text('Cette action est irréversible. Vous ne pourrez plus discuter avec cette personne.'),
+        title: Text(context.localizations.deleteMatchTitle),
+        content: Text(context.localizations.deleteMatchWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(context.localizations.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
+            child: Text(context.localizations.delete),
           ),
         ],
       ),
@@ -336,15 +337,15 @@ class _ConversationPageState extends State<ConversationPage> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Match supprimé avec succès.")),
+            SnackBar(content: Text(context.localizations.matchDeletedSuccess)),
           );
           Navigator.pop(context, true);
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text("Erreur lors de la suppression du match."),
+            SnackBar(
+                content: Text(context.localizations.matchDeleteError),
                 backgroundColor: Colors.red),
           );
         }
@@ -382,10 +383,11 @@ class _ConversationPageState extends State<ConversationPage> {
 
     if (compressedBytes == null) return;
 
-    const maxSize = 2 * 1024 * 1024; // 2 Mo
+    const maxSize = 2 * 1024 * 1024;
     if (compressedBytes.length > maxSize) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("L'image dépasse 2 Mo")),
+        SnackBar(content: Text(context.localizations.imageTooLargeError)),
       );
       return;
     }
@@ -463,7 +465,7 @@ class _ConversationPageState extends State<ConversationPage> {
         IconButton(
           icon: const Icon(Icons.person_remove),
           color: Colors.redAccent,
-          tooltip: 'Supprimer le match',
+          tooltip: context.localizations.deleteMatchTooltip,
           onPressed: _deleteCurrentMatch,
         ),
       ],

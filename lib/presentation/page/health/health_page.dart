@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ampheria/models/donation_card_model.dart';
 import 'package:ampheria/utils/icons.dart';
+import 'package:ampheria/extensions/context_extension.dart';
 
 class HealthPage extends StatefulWidget {
   const HealthPage({super.key});
@@ -69,7 +70,7 @@ class _HealthPageState extends State<HealthPage> {
 
       setState(() {
         _products = response.productDetails;
-        _products.sort((a, b) => a.rawPrice.compareTo(b.rawPrice)); // Trier par prix
+        _products.sort((a, b) => a.rawPrice.compareTo(b.rawPrice));
         _iapAvailable = true;
       });
     } catch (e) {
@@ -122,7 +123,7 @@ class _HealthPageState extends State<HealthPage> {
         debugPrint("IAP_LOG: Purchase verified and recorded by server!");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Merci pour votre don ! ❤️", style: TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+            SnackBar(content: Text(context.localizations.donationThanks, style: const TextStyle(color: Colors.white)), backgroundColor: Colors.green),
           );
           setState(() {});
         }
@@ -159,7 +160,7 @@ class _HealthPageState extends State<HealthPage> {
           .limit(1)
           .single();
       collecteActuelle = (stat['dons_collectes'] as num).toDouble();
-    } catch (_) {/* Ignore si erreur */}
+    } catch (_) {}
 
     return (cards: cards, collecteActuelle: collecteActuelle);
   }
@@ -180,7 +181,7 @@ class _HealthPageState extends State<HealthPage> {
             return Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E), // Fond sombre premium pour la bottom sheet
+                color: const Color(0xFF1E1E1E),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1)),
               ),
@@ -196,9 +197,9 @@ class _HealthPageState extends State<HealthPage> {
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const Text(
-                    "Choisir un montant",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  Text(
+                    context.localizations.chooseAmount,
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   const SizedBox(height: 24),
                   if (_isProcessing)
@@ -239,9 +240,9 @@ class _HealthPageState extends State<HealthPage> {
                       },
                     ),
                   const SizedBox(height: 24),
-                  const Text(
-                    "Merci pour votre soutien ! ❤️",
-                    style: TextStyle(color: Colors.white54, fontSize: 14),
+                  Text(
+                    context.localizations.supportThanks,
+                    style: const TextStyle(color: Colors.white54, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -269,9 +270,9 @@ class _HealthPageState extends State<HealthPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text(
-          'Soutenir Amikone ❤️',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        title: Text(
+          context.localizations.supportAmikone,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
         elevation: 0,
@@ -285,7 +286,7 @@ class _HealthPageState extends State<HealthPage> {
             return const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent));
           }
           if (snap.hasError) {
-            return Center(child: Text('Erreur: ${snap.error}', style: const TextStyle(color: Colors.redAccent)));
+            return Center(child: Text(context.localizations.error(snap.error.toString()), style: const TextStyle(color: Colors.redAccent)));
           }
           final cards = snap.data!.cards;
           final collecteActuelle = snap.data!.collecteActuelle;
@@ -373,7 +374,7 @@ class _HealthPageState extends State<HealthPage> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      c.title ?? 'Objectif',
+                      c.title ?? context.localizations.goal,
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
@@ -387,7 +388,7 @@ class _HealthPageState extends State<HealthPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Collectés', style: TextStyle(fontSize: 14, color: Colors.white54)),
+                      Text(context.localizations.collected, style: const TextStyle(fontSize: 14, color: Colors.white54)),
                       const SizedBox(height: 4),
                       Text(
                         '${actuel.toStringAsFixed(0)} €',
@@ -396,7 +397,7 @@ class _HealthPageState extends State<HealthPage> {
                     ],
                   ),
                   Text(
-                    'Objectif : ${objectif.toStringAsFixed(0)} €',
+                    '${context.localizations.goalPrefix}${objectif.toStringAsFixed(0)} €',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
                   ),
                 ],
@@ -424,8 +425,8 @@ class _HealthPageState extends State<HealthPage> {
                 _showDonationOptions(context, c.id);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Le service de paiement n'est pas disponible pour le moment.", style: TextStyle(color: Colors.white)),
+                  SnackBar(
+                    content: Text(context.localizations.paymentServiceUnavailable, style: const TextStyle(color: Colors.white)),
                     backgroundColor: Colors.redAccent,
                   ),
                 );
@@ -433,7 +434,7 @@ class _HealthPageState extends State<HealthPage> {
             },
             icon: Icon(iconFromName(c.icon), color: Colors.white),
             label: Text(
-              c.buttonLabel ?? 'Soutenir',
+              c.buttonLabel ?? context.localizations.supportAction,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(

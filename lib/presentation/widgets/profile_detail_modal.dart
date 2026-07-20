@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ampheria/extensions/context_extension.dart';
 
 const Color _kBackgroundBlack = Color(0xFF121212);
 const Color _kPrimaryAccent = Colors.deepPurpleAccent;
@@ -61,7 +62,6 @@ class _ProfileDetailModalState extends State<ProfileDetailModal> {
   }
 }
 
-
 class _LoadingView extends StatelessWidget {
   const _LoadingView();
 
@@ -85,9 +85,9 @@ class _ErrorView extends StatelessWidget {
       height: 400,
       alignment: Alignment.center,
       color: _kBackgroundBlack,
-      child: const Text(
-        'Profil introuvable.',
-        style: TextStyle(fontSize: 16, color: Colors.white70),
+      child: Text(
+        context.localizations.profileNotFound,
+        style: const TextStyle(fontSize: 16, color: Colors.white70),
       ),
     );
   }
@@ -97,7 +97,6 @@ class _ProfileContentView extends StatelessWidget {
   final Map<String, dynamic> profile;
 
   const _ProfileContentView({required this.profile});
-
 
   Widget _buildGlassCard({required Widget child}) {
     return Container(
@@ -167,14 +166,13 @@ class _ProfileContentView extends StatelessWidget {
                 [
                   _ProfileDetailsCard(profile: profile),
                   const SizedBox(height: 20),
-
                   _buildGlassCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildSectionTitle("À propos", Icons.person_outline_rounded),
+                        _buildSectionTitle(context.localizations.about, Icons.person_outline_rounded),
                         Text(
-                          profile['bio'] ?? 'Aucune description.',
+                          profile['bio'] ?? context.localizations.noDescription,
                           style: const TextStyle(
                             fontSize: 16,
                             height: 1.5,
@@ -184,14 +182,13 @@ class _ProfileContentView extends StatelessWidget {
                       ],
                     ),
                   ),
-
                   if (tags.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     _buildGlassCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSectionTitle("Intérêts", Icons.favorite_outline_rounded),
+                          _buildSectionTitle(context.localizations.interests, Icons.favorite_outline_rounded),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 12.0,
@@ -202,16 +199,14 @@ class _ProfileContentView extends StatelessWidget {
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 40),
-
                   Center(
                     child: ElevatedButton.icon(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close_rounded, color: Colors.white),
-                      label: const Text(
-                        'Fermer le profil',
-                        style: TextStyle(
+                      label: Text(
+                        context.localizations.closeProfile,
+                        style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white
@@ -222,7 +217,7 @@ class _ProfileContentView extends StatelessWidget {
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30), // Forme pilule
+                          borderRadius: BorderRadius.circular(30),
                           side: BorderSide(color: _kGlassBorder),
                         ),
                       ),
@@ -239,28 +234,27 @@ class _ProfileContentView extends StatelessWidget {
   }
 }
 
-
 class _ProfileDetailsCard extends StatelessWidget {
   final Map<String, dynamic> profile;
 
   const _ProfileDetailsCard({required this.profile});
 
-  String _getDisplayGender(String? gender) {
+  String _getDisplayGender(BuildContext context, String? gender) {
     switch (gender) {
-      case 'male': return 'Homme';
-      case 'female': return 'Femme';
-      case 'other': return 'Autre';
-      default: return 'Non précisé';
+      case 'male': return context.localizations.genderMale;
+      case 'female': return context.localizations.genderFemale;
+      case 'other': return context.localizations.genderOther;
+      default: return context.localizations.notSpecified;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final gender = _getDisplayGender(profile['gender'] as String?);
-    final city = profile['city'] ?? 'Non précisée';
+    final gender = _getDisplayGender(context, profile['gender'] as String?);
+    final city = profile['city'] ?? context.localizations.notSpecifiedFeminine;
     final birthDate = profile['birth_date'] != null
-        ? '${(DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor()} ans'
-        : 'Âge inconnu';
+        ? '${(DateTime.now().difference(DateTime.parse(profile['birth_date'])).inDays / 365).floor()} ${context.localizations.ageYears}'
+        : context.localizations.unknownAge;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -275,7 +269,7 @@ class _ProfileDetailsCard extends StatelessWidget {
           _InfoColumn(icon: Icons.person_outline_rounded, value: gender),
           Container(width: 1, height: 40, color: Colors.white24),
           _InfoColumn(icon: Icons.cake_outlined, value: birthDate),
-          if (city.isNotEmpty && city != 'Non précisée') ...[
+          if (city.isNotEmpty && city != context.localizations.notSpecifiedFeminine) ...[
             Container(width: 1, height: 40, color: Colors.white24),
             _InfoColumn(icon: Icons.location_on_outlined, value: city),
           ]
@@ -371,19 +365,19 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                 side: BorderSide(color: _kGlassBorder),
               ),
               title: Row(
-                children: const [
-                  Icon(Icons.flag_outlined, color: _kDangerRed),
-                  SizedBox(width: 12),
-                  Text('Signaler ce profil', style: TextStyle(color: Colors.white)),
+                children: [
+                  const Icon(Icons.flag_outlined, color: _kDangerRed),
+                  const SizedBox(width: 12),
+                  Text(context.localizations.reportProfile, style: const TextStyle(color: Colors.white)),
                 ],
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Veuillez indiquer la raison de votre signalement :',
-                    style: TextStyle(color: Colors.white70),
+                  Text(
+                    context.localizations.reportReasonPrompt,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 20),
                   TextField(
@@ -391,7 +385,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: _kPrimaryAccent,
                     decoration: InputDecoration(
-                      hintText: 'Faux profil, comportement...',
+                      hintText: context.localizations.reportReasonHint,
                       hintStyle: const TextStyle(color: Colors.white54),
                       filled: true,
                       fillColor: Colors.black26,
@@ -412,7 +406,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
               actions: [
                 TextButton(
                   onPressed: isSubmitting ? null : () => Navigator.pop(context),
-                  child: const Text('Annuler', style: TextStyle(color: Colors.white54)),
+                  child: Text(context.localizations.cancel, style: const TextStyle(color: Colors.white54)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -436,7 +430,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                       final supabase = Supabase.instance.client;
                       final currentUser = supabase.auth.currentUser;
 
-                      if (currentUser == null) throw Exception("Utilisateur non connecté");
+                      if (currentUser == null) throw Exception(context.localizations.userNotLoggedIn);
 
                       await supabase.from('reports').upsert({
                         'reporter_id': currentUser.id,
@@ -449,7 +443,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('Le profil a été signalé.', style: TextStyle(color: Colors.white)),
+                            content: Text(context.localizations.profileReportedSuccess, style: const TextStyle(color: Colors.white)),
                             backgroundColor: _kGlassBackground,
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: _kGlassBorder)),
@@ -461,7 +455,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Erreur : $e', style: const TextStyle(color: Colors.white)),
+                            content: Text(context.localizations.error(e.toString()), style: const TextStyle(color: Colors.white)),
                             backgroundColor: _kDangerRed.withOpacity(0.8),
                           ),
                         );
@@ -474,7 +468,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                     height: 16,
                     child: CircularProgressIndicator(color: _kDangerRed, strokeWidth: 2),
                   )
-                      : const Text('Signaler'),
+                      : Text(context.localizations.report),
                 ),
               ],
             );
@@ -487,7 +481,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
   @override
   Widget build(BuildContext context) {
     final photos = List<String>.from(widget.profile['photos'] ?? []);
-    final fullName = widget.profile['full_name'] ?? 'Utilisateur';
+    final fullName = widget.profile['full_name'] ?? context.localizations.defaultUserName;
     final profileId = widget.profile['id'];
 
     return SliverAppBar(
@@ -508,7 +502,7 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
             ),
             child: IconButton(
               icon: const Icon(Icons.flag_outlined, color: Colors.white),
-              tooltip: 'Signaler ce profil',
+              tooltip: context.localizations.reportProfile,
               onPressed: () => _showReportDialog(context, profileId),
             ),
           ),
@@ -529,7 +523,6 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                 return Image.network(url, fit: BoxFit.cover);
               },
             ),
-
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -540,8 +533,6 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                 ),
               ),
             ),
-
-
             Row(
               children: [
                 Expanded(
@@ -558,7 +549,6 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
                 ),
               ],
             ),
-
             Positioned(
               bottom: 24,
               left: 24,
