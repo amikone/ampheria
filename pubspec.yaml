@@ -35,6 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   supabase_flutter: ^2.15.0
+  supabase_auth_ui: ^0.7.0
   image_picker: ^1.2.2
   flutter_chat_core: ^2.9.0
   flutter_chat_ui: ^2.11.1

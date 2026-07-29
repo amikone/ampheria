@@ -62,7 +62,11 @@ class _PeoplePageState extends State<PeoplePage> {
     }
   }
 
-  Future<void> _loadProfiles({bool append = false, int limit = 10}) async {
+  Future<void> _loadProfiles({
+    bool append = false,
+    int limit = 10,
+    bool onlyVerified = false,
+  }) async {
     if (!append) {
       setState(() {
         _loading = true;
@@ -75,30 +79,42 @@ class _PeoplePageState extends State<PeoplePage> {
     }
 
     try {
-      final response = await supabase.rpc("get_next_profiles", params: {
-        'p_limit': limit,
-      });
+      final response = await supabase.rpc(
+        "get_next_profiles",
+        params: {
+          'p_limit': limit,
+          'p_only_verified': onlyVerified,
+        },
+      );
 
       final data = response as List<dynamic>?;
 
       if (mounted) {
         if (data != null && data.isNotEmpty) {
-          final incoming =
-          data.map((e) => Map<String, dynamic>.from(e)).toList();
+          final incoming = data.map((e) => Map<String, dynamic>.from(e)).toList();
+
           setState(() {
             if (append) {
               _profiles.addAll(incoming);
-              _loadingMore = false;
             } else {
               _profiles = incoming;
             }
             _loading = false;
+            _loadingMore = false;
           });
         } else {
-          setState(() => _loading = false);
+          setState(() {
+            if (!append) {
+              _profiles = [];
+            }
+            _loading = false;
+            _loadingMore = false;
+          });
         }
       }
     } catch (e) {
+      debugPrint("Erreur lors de la récupération des profils : $e");
+
       if (mounted) {
         setState(() {
           _loading = false;
