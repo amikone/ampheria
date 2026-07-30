@@ -95,8 +95,39 @@ class MyApp extends StatelessWidget {
           primary: Colors.deepPurple,
           secondary: Colors.deepPurpleAccent,
           surface: Color(0xFF1E1E2C),
+          onSurface: Colors.white,
+          onPrimary: Colors.white,
         ),
         scaffoldBackgroundColor: const Color(0xFF121212),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepPurple,
+            foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.05),
+          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+          labelStyle: const TextStyle(color: Colors.white),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+          ),
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF1E1E2C),
           titleTextStyle: TextStyle(color: Colors.white, fontSize: 20),
@@ -104,8 +135,20 @@ class MyApp extends StatelessWidget {
         ),
         cardColor: const Color(0xFF1E1E2C),
         textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.white70),
-          bodyMedium: TextStyle(color: Colors.white60),
+          bodyLarge: TextStyle(color: Colors.white),
+          bodyMedium: TextStyle(color: Colors.white),
+          titleMedium: TextStyle(color: Colors.white),
+          titleSmall: TextStyle(color: Colors.white),
+          labelLarge: TextStyle(color: Colors.white),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFBB86FC), // High contrast light purple
+            textStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              decoration: TextDecoration.underline,
+            ),
+          ),
         ),
       ),
       home: const AuthStateHandler(),
