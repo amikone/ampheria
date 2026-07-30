@@ -1,3 +1,5 @@
+import 'package:ampheria/presentation/page/server_picker_page.dart';
+import 'package:ampheria/services/supabase_manager.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ampheria/extensions/context_extension.dart';
@@ -22,11 +24,38 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _openServerPicker() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ServerPickerPage()),
+    );
+    if (result == true && mounted) {
+      // Force refresh of the whole app or just the LoginPage to ensure Supabase client is updated
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+    final currentServer = SupabaseManager().currentConfig;
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          TextButton.icon(
+            onPressed: _openServerPicker,
+            icon: const Icon(Icons.language, color: Colors.white70),
+            label: Text(
+              currentServer?.name ?? 'Serveur',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ),
+        ],
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

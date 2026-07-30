@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ampheria/presentation/login_view.dart';
 import 'package:ampheria/presentation/page/chat/chat_page.dart';
 import 'package:ampheria/presentation/page/health/health_page.dart';
@@ -6,6 +8,7 @@ import 'package:ampheria/presentation/page/people/people_page.dart';
 import 'package:ampheria/presentation/page/profile/profile_screen.dart';
 import 'package:ampheria/presentation/widgets/bottom_nav_bar.dart';
 import 'package:ampheria/l10n/app_localizations.dart';
+import 'package:ampheria/services/supabase_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -14,10 +17,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: 'https://amikone.endide.com',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY0NzE2NDAwLCJleHAiOjE5MjI0ODI4MDB9.feIlUK_yvMG3IsfIVWkdeo7f0NHHNqWOacuAhU4rBUU',
-  );
+  await SupabaseManager().initialize();
+  
   runApp(const ProviderScope(
   child: MyApp()));
 }
@@ -168,15 +169,37 @@ class AuthStateHandler extends StatefulWidget {
 }
 
 class _AuthStateHandlerState extends State<AuthStateHandler> {
-  final SupabaseClient supabase = Supabase.instance.client;
+  SupabaseClient get supabase => Supabase.instance.client;
   Session? _session;
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
     super.initState();
-    _session = supabase.auth.currentSession;
+    _setupAuthListener();
+    SupabaseManager().addListener(_onServerChanged);
+  }
 
-    supabase.auth.onAuthStateChange.listen((data) {
+  @override
+  void dispose() {
+    SupabaseManager().removeListener(_onServerChanged);
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _onServerChanged() {
+    if (mounted) {
+      _setupAuthListener();
+    }
+  }
+
+  void _setupAuthListener() {
+    _authSubscription?.cancel();
+    setState(() {
+      _session = supabase.auth.currentSession;
+    });
+
+    _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
       if (mounted) {
         setState(() => _session = data.session);
       }

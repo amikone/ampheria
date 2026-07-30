@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:ampheria/presentation/page/server_picker_page.dart';
+import 'package:ampheria/services/supabase_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1085,14 +1087,37 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: const Icon(Icons.settings, color: Colors.white),
             color: const Color(0xFF1E1B2E),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 'password') {
                 _showChangePasswordDialog();
               } else if (value == 'delete') {
                 _showDeleteAccountDialog();
+              } else if (value == 'server') {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ServerPickerPage()),
+                );
+                if (result == true && mounted) {
+                  // After changing server, we should probably force the user to re-login
+                  // or at least refresh the AuthStateHandler.
+                  // For simplicity, we just sign out and go to login.
+                  await supabase.auth.signOut();
+                  if (mounted) Navigator.pushReplacementNamed(context, '/login');
+                }
               }
             },
             itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'server',
+                child: Row(
+                  children: [
+                    const Icon(Icons.dns_outlined, color: Colors.white70, size: 20),
+                    const SizedBox(width: 12),
+                    Text('Changer de serveur', style: const TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(height: 1),
               PopupMenuItem<String>(
                 value: 'password',
                 child: Row(
