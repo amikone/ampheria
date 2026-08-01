@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:ampheria/presentation/page/profile/view/identity_settings_page.dart';
 import 'package:ampheria/presentation/page/server_picker_page.dart';
 import 'package:ampheria/services/supabase_manager.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +9,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ampheria/services/reference_data_service.dart';
-import 'package:ampheria/presentation/widgets/orientation_selector.dart';
 import 'package:ampheria/extensions/context_extension.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -515,14 +515,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildSectionTitle(String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white),
+          Icon(icon, color: Colors.white, size: 18),
           const SizedBox(width: 8),
           Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ],
       ),
@@ -530,31 +530,17 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileHeader() {
-    return Column(
-      children: [
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.deepPurpleAccent.withOpacity(0.5), width: 3),
-          ),
-          child: CircleAvatar(
-            radius: 48,
-            backgroundColor: Colors.deepPurpleAccent,
-            child: Text(
-              _name.isNotEmpty ? _name.substring(0, 1).toUpperCase() : "?",
-              style: const TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 0, bottom: 12),
+      child: Text(
+        _name,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
-        const SizedBox(height: 16),
-        Text(
-          _name,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        const SizedBox(height: 24),
-      ],
+      ),
     );
   }
 
@@ -791,7 +777,6 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(context.localizations.myPhotosTitle, Icons.photo_library_outlined),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -846,118 +831,70 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildIdentitySummary() {
+    return _buildGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSectionTitle(context.localizations.myIdentityTitle, Icons.fingerprint),
+              IconButton(
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => IdentitySettingsPage(
+                        initialGender: _myGender,
+                        initialOrientation: _myOrientation,
+                        initialInterestedIn: _interestedIn,
+                      ),
+                    ),
+                  );
+                  _loadInitialData(); // Refresh on return
+                },
+                icon: const Icon(Icons.edit_outlined, color: Colors.deepPurpleAccent, size: 20),
+              ),
+            ],
+          ),
+          _buildSummaryRow(context.localizations.identityGenre, _myGender ?? context.localizations.notSpecified),
+          const SizedBox(height: 12),
+          _buildSummaryRow(context.localizations.identityOrientation, _myOrientation ?? context.localizations.notSpecified),
+          const SizedBox(height: 12),
+          _buildSummaryRow(context.localizations.identitySeeking, _interestedIn.isEmpty ? context.localizations.everyone : _interestedIn.join(", ")),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 90,
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white38, fontSize: 14),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPreferencesSection() {
     return _buildGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionTitle(context.localizations.datingPreferencesTitle, Icons.tune),
-
-          Text(
-            context.localizations.myOrientationLabel,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            context.localizations.displayedOnPublicProfile,
-            style: const TextStyle(color: Colors.white38, fontSize: 12),
-          ),
-          const SizedBox(height: 12),
-
-          OrientationSelector(
-            selectedOrientation: _myOrientation,
-            onChanged: (value) async {
-              setState(() => _myOrientation = value);
-              _onProfileChanged();
-
-              if (value != null && _myGender != null) {
-                final allGenders =
-                await ReferenceDataService.fetchGenders();
-                final suggested =
-                ReferenceDataService.suggestInterestedIn(
-                  orientation: value,
-                  myGender: _myGender!,
-                  allGenders: allGenders,
-                );
-                if (suggested.isNotEmpty && mounted) {
-                  _showSuggestionBanner(suggested);
-                }
-              }
-            },
-          ),
-
-          const Divider(height: 40, color: Colors.white24),
-
-          Text(
-            context.localizations.iWantToMeetLabel,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            context.localizations.usedByAlgorithmForProfiles,
-            style: const TextStyle(color: Colors.white38, fontSize: 12),
-          ),
-          const SizedBox(height: 12),
-
-          FutureBuilder<List<String>>(
-            future: ReferenceDataService.fetchGenders(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(
-                  child: CircularProgressIndicator(
-                    color: Colors.deepPurpleAccent,
-                    strokeWidth: 2,
-                  ),
-                );
-              }
-              return Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: snapshot.data!.map((gender) {
-                  final isSelected = _interestedIn.contains(gender);
-                  return FilterChip(
-                    label: Text(
-                      gender,
-                      style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : Colors.white70,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    selected: isSelected,
-                    selectedColor:
-                    Colors.deepPurpleAccent.withOpacity(0.3),
-                    checkmarkColor: Colors.deepPurpleAccent,
-                    backgroundColor: Colors.white.withOpacity(0.05),
-                    side: BorderSide(
-                      color: isSelected
-                          ? Colors.deepPurpleAccent
-                          : Colors.white.withOpacity(0.2),
-                    ),
-                    onSelected: (selected) {
-                      setState(() {
-                        selected
-                            ? _interestedIn.add(gender)
-                            : _interestedIn.remove(gender);
-                      });
-                      _onPreferencesChanged();
-                    },
-                  );
-                }).toList(),
-              );
-            },
-          ),
-
-          const Divider(height: 40, color: Colors.white24),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1029,58 +966,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _showSuggestionBanner(List<String> suggested) {
-    ScaffoldMessenger.of(context).showMaterialBanner(
-      MaterialBanner(
-        backgroundColor: const Color(0xFF1E1B2E),
-        content: Text(
-          '${context.localizations.applySuggestionPrompt} ${suggested.join(', ')} ?',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        leading: const Icon(
-          Icons.auto_awesome,
-          color: Colors.deepPurpleAccent,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context)
-                  .hideCurrentMaterialBanner();
-            },
-            child: Text(
-              context.localizations.ignore,
-              style: const TextStyle(color: Colors.white54),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() => _interestedIn = suggested);
-              _onPreferencesChanged();
-              ScaffoldMessenger.of(context)
-                  .hideCurrentMaterialBanner();
-            },
-            child: Text(
-              context.localizations.apply,
-              style: const TextStyle(
-                color: Colors.deepPurpleAccent,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: Text(context.localizations.profileTitle, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        centerTitle: true,
-        elevation: 0,
         backgroundColor: Colors.transparent,
+        elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           PopupMenuButton<String>(
@@ -1143,21 +1035,22 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
-            : ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          children: [
-            _buildProfileHeader(),
-            _buildBioSection(),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
+          : ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+        children: [
+          _buildProfileHeader(),
+          _buildPhotosSection(),
+          const SizedBox(height: 16),
+          _buildBioSection(),
             const SizedBox(height: 16),
             _buildPassionsSection(),
             const SizedBox(height: 16),
-            _buildPhotosSection(),
+            _buildIdentitySummary(),
             const SizedBox(height: 16),
             _buildPreferencesSection(),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
 
             ElevatedButton.icon(
               onPressed: () => _signOut(context),
@@ -1177,7 +1070,6 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 40),
           ],
         ),
-      ),
-    );
+      );
   }
 }

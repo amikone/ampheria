@@ -449,4 +449,69 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get deleteMatchTooltip => '매치 삭제';
+
+  @override
+  String get serverPickerTitle => '서버 선택';
+
+  @override
+  String get availableServersGithub => '사용 가능한 서버 (GitHub)';
+
+  @override
+  String get addServerManually => '수동으로 추가';
+
+  @override
+  String get addServerDesc => 'URL 및 Publishable Key 입력';
+
+  @override
+  String get addServerDialogTitle => '서버 추가';
+
+  @override
+  String get serverNameLabel => '이름';
+
+  @override
+  String get serverUrlLabel => 'URL (https://...)';
+
+  @override
+  String get serverKeyLabel => 'Publishable Key';
+
+  @override
+  String get addAndSelect => '추가 및 선택';
+
+  @override
+  String get manualServerDesc => '수동으로 추가된 서버';
+
+  @override
+  String connectedToServer(Object name) {
+    return '$name에 연결됨';
+  }
+
+  @override
+  String get myIdentityTitle => '나의 정체성';
+
+  @override
+  String get myGenderLabel => '나의 성별';
+
+  @override
+  String get myGenderSubtitle => '자신을 어떻게 정의하시나요?';
+
+  @override
+  String get myOrientationSubtitle => '공개 프로필에 표시됩니다';
+
+  @override
+  String get whoIWantToMeet => '내가 만나고 싶은 사람';
+
+  @override
+  String get whoIWantToMeetSubtitle => '알고리즘이 프로필을 추천하는 데 사용됩니다';
+
+  @override
+  String get identityGenre => '성별';
+
+  @override
+  String get identityOrientation => '성적 지향';
+
+  @override
+  String get identitySeeking => '찾고 있는 사람';
+
+  @override
+  String get everyone => '모두';
 }

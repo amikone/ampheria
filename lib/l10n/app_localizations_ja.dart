@@ -450,4 +450,69 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deleteMatchTooltip => 'マッチを削除';
+
+  @override
+  String get serverPickerTitle => 'サーバーを選択';
+
+  @override
+  String get availableServersGithub => '利用可能なサーバー (GitHub)';
+
+  @override
+  String get addServerManually => '手動で追加';
+
+  @override
+  String get addServerDesc => 'URLとPublishable Keyを入力';
+
+  @override
+  String get addServerDialogTitle => 'サーバーを追加';
+
+  @override
+  String get serverNameLabel => '名前';
+
+  @override
+  String get serverUrlLabel => 'URL (https://...)';
+
+  @override
+  String get serverKeyLabel => 'Publishable Key';
+
+  @override
+  String get addAndSelect => '追加して選択';
+
+  @override
+  String get manualServerDesc => '手動で追加されたサーバー';
+
+  @override
+  String connectedToServer(Object name) {
+    return '$name に接続しました';
+  }
+
+  @override
+  String get myIdentityTitle => '私のアイデンティティ';
+
+  @override
+  String get myGenderLabel => '私の性別';
+
+  @override
+  String get myGenderSubtitle => '自分をどのように定義しますか？';
+
+  @override
+  String get myOrientationSubtitle => '公開プロフィールに表示されます';
+
+  @override
+  String get whoIWantToMeet => '会いたい人';
+
+  @override
+  String get whoIWantToMeetSubtitle => 'アルゴリズムがプロフィールを提案するために使用されます';
+
+  @override
+  String get identityGenre => '性別';
+
+  @override
+  String get identityOrientation => '性的指向';
+
+  @override
+  String get identitySeeking => '探している人';
+
+  @override
+  String get everyone => '全員';
 }

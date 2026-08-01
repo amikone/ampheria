@@ -981,6 +981,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete match'**
   String get deleteMatchTooltip;
+
+  /// No description provided for @serverPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a server'**
+  String get serverPickerTitle;
+
+  /// No description provided for @availableServersGithub.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Servers (GitHub)'**
+  String get availableServersGithub;
+
+  /// No description provided for @addServerManually.
+  ///
+  /// In en, this message translates to:
+  /// **'Add manually'**
+  String get addServerManually;
+
+  /// No description provided for @addServerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter URL and Publishable Key'**
+  String get addServerDesc;
+
+  /// No description provided for @addServerDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a server'**
+  String get addServerDialogTitle;
+
+  /// No description provided for @serverNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get serverNameLabel;
+
+  /// No description provided for @serverUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'URL (https://...)'**
+  String get serverUrlLabel;
+
+  /// No description provided for @serverKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Publishable Key'**
+  String get serverKeyLabel;
+
+  /// No description provided for @addAndSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Add and Select'**
+  String get addAndSelect;
+
+  /// No description provided for @manualServerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Manually added server'**
+  String get manualServerDesc;
+
+  /// No description provided for @connectedToServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to {name}'**
+  String connectedToServer(Object name);
+
+  /// No description provided for @myIdentityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Identity'**
+  String get myIdentityTitle;
+
+  /// No description provided for @myGenderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'My Gender'**
+  String get myGenderLabel;
+
+  /// No description provided for @myGenderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How do you define yourself?'**
+  String get myGenderSubtitle;
+
+  /// No description provided for @myOrientationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Will be displayed on your public profile'**
+  String get myOrientationSubtitle;
+
+  /// No description provided for @whoIWantToMeet.
+  ///
+  /// In en, this message translates to:
+  /// **'Who I want to meet'**
+  String get whoIWantToMeet;
+
+  /// No description provided for @whoIWantToMeetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Used by the algorithm to suggest profiles'**
+  String get whoIWantToMeetSubtitle;
+
+  /// No description provided for @identityGenre.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender'**
+  String get identityGenre;
+
+  /// No description provided for @identityOrientation.
+  ///
+  /// In en, this message translates to:
+  /// **'Orientation'**
+  String get identityOrientation;
+
+  /// No description provided for @identitySeeking.
+  ///
+  /// In en, this message translates to:
+  /// **'Seeking'**
+  String get identitySeeking;
+
+  /// No description provided for @everyone.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone'**
+  String get everyone;
 }
 
 class _AppLocalizationsDelegate

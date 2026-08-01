@@ -463,4 +463,70 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get deleteMatchTooltip => 'Supprimer le match';
+
+  @override
+  String get serverPickerTitle => 'Choisir un serveur';
+
+  @override
+  String get availableServersGithub => 'Serveurs Disponibles (GitHub)';
+
+  @override
+  String get addServerManually => 'Ajouter manuellement';
+
+  @override
+  String get addServerDesc => 'Saisir URL et Publishable Key';
+
+  @override
+  String get addServerDialogTitle => 'Ajouter un serveur';
+
+  @override
+  String get serverNameLabel => 'Nom';
+
+  @override
+  String get serverUrlLabel => 'URL (https://...)';
+
+  @override
+  String get serverKeyLabel => 'Publishable Key';
+
+  @override
+  String get addAndSelect => 'Ajouter et Sélectionner';
+
+  @override
+  String get manualServerDesc => 'Serveur ajouté manuellement';
+
+  @override
+  String connectedToServer(Object name) {
+    return 'Connecté à $name';
+  }
+
+  @override
+  String get myIdentityTitle => 'Mon Identité';
+
+  @override
+  String get myGenderLabel => 'Mon Genre';
+
+  @override
+  String get myGenderSubtitle => 'Comment vous définissez-vous ?';
+
+  @override
+  String get myOrientationSubtitle => 'Sera affiché sur votre profil public';
+
+  @override
+  String get whoIWantToMeet => 'Qui je souhaite rencontrer';
+
+  @override
+  String get whoIWantToMeetSubtitle =>
+      'Utilisé par l\'algorithme pour vous proposer des profils';
+
+  @override
+  String get identityGenre => 'Genre';
+
+  @override
+  String get identityOrientation => 'Orientation';
+
+  @override
+  String get identitySeeking => 'Je cherche';
+
+  @override
+  String get everyone => 'Tout le monde';
 }

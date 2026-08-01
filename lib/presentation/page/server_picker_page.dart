@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ampheria/extensions/context_extension.dart';
 import '../../models/supabase_config.dart';
 import '../../services/discovery_service.dart';
 import '../../services/supabase_manager.dart';
@@ -17,7 +18,7 @@ class _ServerPickerPageState extends State<ServerPickerPage> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
-  final TextEditingController _anonKeyController = TextEditingController();
+  final TextEditingController _publishableKeyController = TextEditingController();
 
   @override
   void initState() {
@@ -40,24 +41,24 @@ class _ServerPickerPageState extends State<ServerPickerPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Ajouter un serveur'),
+        title: Text(context.localizations.addServerDialogTitle),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nom'),
+                decoration: InputDecoration(labelText: context.localizations.serverNameLabel),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _urlController,
-                decoration: const InputDecoration(labelText: 'URL (https://...)'),
+                decoration: InputDecoration(labelText: context.localizations.serverUrlLabel),
               ),
               const SizedBox(height: 8),
               TextField(
-                controller: _anonKeyController,
-                decoration: const InputDecoration(labelText: 'Anon Key'),
+                controller: _publishableKeyController,
+                decoration: InputDecoration(labelText: context.localizations.serverKeyLabel),
               ),
             ],
           ),
@@ -65,20 +66,20 @@ class _ServerPickerPageState extends State<ServerPickerPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(context.localizations.cancel),
           ),
           ElevatedButton(
             onPressed: () {
               final config = SupabaseConfig(
                 name: _nameController.text,
-                description: "Serveur ajouté manuellement",
+                description: context.localizations.manualServerDesc,
                 url: _urlController.text,
-                anonKey: _anonKeyController.text,
+                publishableKey: _publishableKeyController.text,
               );
               _selectServer(config);
               Navigator.pop(context);
             },
-            child: const Text('Ajouter et Sélectionner'),
+            child: Text(context.localizations.addAndSelect),
           ),
         ],
       ),
@@ -95,11 +96,11 @@ class _ServerPickerPageState extends State<ServerPickerPage> {
     await SupabaseManager().changeServer(config);
 
     if (mounted) {
-      Navigator.pop(context); // Close loading
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Connecté à ${config.name}')),
+        SnackBar(content: Text(context.localizations.connectedToServer(config.name))),
       );
-      Navigator.pop(context, true); // Return to previous page with success
+      Navigator.pop(context, true);
     }
   }
 
@@ -109,7 +110,7 @@ class _ServerPickerPageState extends State<ServerPickerPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Choisir un serveur'),
+        title: Text(context.localizations.serverPickerTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -121,11 +122,11 @@ class _ServerPickerPageState extends State<ServerPickerPage> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Text(
-                    'Serveurs Disponibles (GitHub)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    context.localizations.availableServersGithub,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 ..._servers.map((server) {
@@ -144,8 +145,8 @@ class _ServerPickerPageState extends State<ServerPickerPage> {
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.add),
-                  title: const Text('Ajouter manuellement'),
-                  subtitle: const Text('Saisir URL et Anon Key'),
+                  title: Text(context.localizations.addServerManually),
+                  subtitle: Text(context.localizations.addServerDesc),
                   onTap: _showAddManualDialog,
                 ),
               ],

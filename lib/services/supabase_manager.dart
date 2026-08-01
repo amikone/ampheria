@@ -22,7 +22,7 @@ class SupabaseManager extends ChangeNotifier {
     name: "Amikone Officiel",
     description: "Serveur principal géré par l'équipe",
     url: "https://amikone.endide.com",
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY0NzE2NDAwLCJleHAiOjE5MjI0ODI4MDB9.feIlUK_yvMG3IsfIVWkdeo7f0NHHNqWOacuAhU4rBUU",
+    publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY0NzE2NDAwLCJleHAiOjE5MjI0ODI4MDB9.feIlUK_yvMG3IsfIVWkdeo7f0NHHNqWOacuAhU4rBUU",
   );
 
   Future<void> initialize() async {
@@ -44,12 +44,11 @@ class SupabaseManager extends ChangeNotifier {
   }
 
   Future<void> _initSupabase(SupabaseConfig config) async {
-    // Generate a unique key for session persistence based on the server name or URL
     final sessionKey = 'sb-${config.name.replaceAll(' ', '-').toLowerCase()}-auth-token';
 
     await Supabase.initialize(
       url: config.url,
-      anonKey: config.anonKey,
+      publishableKey: config.publishableKey,
       authOptions: FlutterAuthClientOptions(
         localStorage: SharedPreferencesLocalStorage(
           persistSessionKey: sessionKey,

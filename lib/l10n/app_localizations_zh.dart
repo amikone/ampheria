@@ -449,4 +449,69 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteMatchTooltip => '删除匹配';
+
+  @override
+  String get serverPickerTitle => '选择服务器';
+
+  @override
+  String get availableServersGithub => '可用服务器 (GitHub)';
+
+  @override
+  String get addServerManually => '手动添加';
+
+  @override
+  String get addServerDesc => '输入 URL 和 Publishable Key';
+
+  @override
+  String get addServerDialogTitle => '添加服务器';
+
+  @override
+  String get serverNameLabel => '名称';
+
+  @override
+  String get serverUrlLabel => 'URL (https://...)';
+
+  @override
+  String get serverKeyLabel => 'Publishable Key';
+
+  @override
+  String get addAndSelect => '添加并选择';
+
+  @override
+  String get manualServerDesc => '手动添加的服务器';
+
+  @override
+  String connectedToServer(Object name) {
+    return '已连接到 $name';
+  }
+
+  @override
+  String get myIdentityTitle => '我的身份';
+
+  @override
+  String get myGenderLabel => '我的性别';
+
+  @override
+  String get myGenderSubtitle => '你如何定义自己？';
+
+  @override
+  String get myOrientationSubtitle => '将显示在你的公开资料中';
+
+  @override
+  String get whoIWantToMeet => '我想见的人';
+
+  @override
+  String get whoIWantToMeetSubtitle => '算法用于推荐个人资料';
+
+  @override
+  String get identityGenre => '性别';
+
+  @override
+  String get identityOrientation => '取向';
+
+  @override
+  String get identitySeeking => '正在寻找';
+
+  @override
+  String get everyone => '所有人';
 }
