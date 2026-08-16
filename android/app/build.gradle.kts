@@ -1,8 +1,26 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// --- Chargement sécurisé du fichier local.properties ---
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+} else {
+    throw GradleException("Le fichier local.properties est INTROUVABLE à l'emplacement : ${localPropertiesFile.absolutePath}")
+}
+
+// Extraction des propriétés avec gestion d'erreur si la clé est manquante
+val storeFileValue = localProperties.getProperty("STORE_FILE") ?: throw GradleException("La clé 'STORE_FILE' est manquante dans local.properties")
+val storePasswordValue = localProperties.getProperty("STORE_PASSWORD") ?: throw GradleException("La clé 'STORE_PASSWORD' est manquante dans local.properties")
+val keyAliasValue = localProperties.getProperty("KEY_ALIAS") ?: throw GradleException("La clé 'KEY_ALIAS' est manquante dans local.properties")
+val keyPasswordValue = localProperties.getProperty("KEY_PASSWORD") ?: throw GradleException("La clé 'KEY_PASSWORD' est manquante dans local.properties")
 
 android {
     namespace = "fr.endide.ampheria"
@@ -15,23 +33,19 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "fr.endide.ampheria"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
-
     signingConfigs {
         create("release") {
-            storeFile = file("/home/krfcm2/Documents/Keystore/endide.keystore")
-            storePassword = "Endide3220"
-            keyAlias = "endide-upload"
-            keyPassword = "Endide3220"
+            storeFile = file(storeFileValue)
+            storePassword = storePasswordValue
+            keyAlias = keyAliasValue
+            keyPassword = keyPasswordValue
         }
     }
 
