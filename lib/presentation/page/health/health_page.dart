@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:ampheria/models/donation_card_model.dart';
 import 'package:ampheria/utils/icons.dart';
@@ -135,6 +136,23 @@ class _HealthPageState extends State<HealthPage> {
     }
   }
 
+  Future<void> _launchURL(String? urlString) async {
+    if (urlString == null || urlString.trim().isEmpty) return;
+    try {
+      final Uri? uri = Uri.tryParse(urlString.trim());
+      if (uri != null) {
+        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!launched && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Impossible d\'ouvrir le lien : $urlString')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error launching URL: $e");
+    }
+  }
+
   @override
   void dispose() {
     _subscription.cancel();
@@ -207,7 +225,7 @@ class _HealthPageState extends State<HealthPage> {
                       padding: EdgeInsets.all(20.0),
                       child: CircularProgressIndicator(color: Colors.deepPurpleAccent),
                     ))
-                  else
+                  else if (_products.isNotEmpty)
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -238,6 +256,15 @@ class _HealthPageState extends State<HealthPage> {
                           ),
                         );
                       },
+                    )
+                  else
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: Text(
+                        "Les options de paiement In-App ne sont pas configurées ou disponibles sur cet appareil.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
                     ),
                   const SizedBox(height: 24),
                   Text(
@@ -253,11 +280,11 @@ class _HealthPageState extends State<HealthPage> {
     );
   }
 
-  Widget _buildGlassCard({required Widget child}) {
+  Widget _buildGlassCard({required Widget child, Color? borderColor}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
-        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+        border: Border.all(color: borderColor ?? Colors.white.withOpacity(0.1), width: 1),
         borderRadius: BorderRadius.circular(20),
       ),
       padding: const EdgeInsets.all(24.0),
@@ -271,7 +298,7 @@ class _HealthPageState extends State<HealthPage> {
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: Text(
-          context.localizations.supportAmikone,
+          context.localizations.navHealth,
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
@@ -312,6 +339,124 @@ class _HealthPageState extends State<HealthPage> {
 
   Widget _buildCard(BuildContext context, DonationCardModel c, double? collecteActuelle) {
     switch (c.kind) {
+      case 'feature':
+      case 'event':
+        final isEvent = c.kind == 'event';
+        return _buildGlassCard(
+          borderColor: Colors.deepPurpleAccent.withOpacity(0.3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.deepPurpleAccent, Color(0xFF9C27B0)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      isEvent ? 'ÉVÉNEMENT' : 'NOUVEAUTÉ',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurpleAccent.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(iconFromName(c.icon), color: Colors.deepPurpleAccent, size: 26),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      c.title ?? '',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              if ((c.body ?? '').isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  c.body!,
+                  style: const TextStyle(fontSize: 14, height: 1.5, color: Colors.white70),
+                ),
+              ],
+              if ((c.buttonLabel ?? '').isNotEmpty) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      if (c.buttonUrl != null && c.buttonUrl!.isNotEmpty) {
+                        _launchURL(c.buttonUrl);
+                      }
+                    },
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: Text(c.buttonLabel!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.deepPurpleAccent,
+                      side: const BorderSide(color: Colors.deepPurpleAccent),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+
+      case 'tip':
+        return _buildGlassCard(
+          borderColor: Colors.amber.withOpacity(0.2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(iconFromName(c.icon), color: Colors.amberAccent, size: 26),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      c.title ?? 'Conseil & Astuce',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              if ((c.body ?? '').isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  c.body!,
+                  style: const TextStyle(fontSize: 14, height: 1.5, color: Colors.white70),
+                ),
+              ],
+            ],
+          ),
+        );
+
       case 'info':
         return _buildGlassCard(
           child: Column(
@@ -346,6 +491,27 @@ class _HealthPageState extends State<HealthPage> {
                     color: Colors.white70,
                   ),
                   textAlign: TextAlign.justify,
+                ),
+              ],
+              if ((c.buttonLabel ?? '').isNotEmpty) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      if (c.buttonUrl != null && c.buttonUrl!.isNotEmpty) {
+                        _launchURL(c.buttonUrl);
+                      }
+                    },
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: Text(c.buttonLabel!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.deepPurpleAccent,
+                      side: const BorderSide(color: Colors.deepPurpleAccent),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -421,16 +587,7 @@ class _HealthPageState extends State<HealthPage> {
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: ElevatedButton.icon(
             onPressed: () {
-              if (_iapAvailable && _products.isNotEmpty) {
-                _showDonationOptions(context, c.id);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(context.localizations.paymentServiceUnavailable, style: const TextStyle(color: Colors.white)),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
-              }
+              _showDonationOptions(context, c.id);
             },
             icon: Icon(iconFromName(c.icon), color: Colors.white),
             label: Text(

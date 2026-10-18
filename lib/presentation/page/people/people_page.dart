@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ampheria/presentation/widgets/profile_detail_modal.dart';
+import 'package:ampheria/presentation/widgets/profile_image_placeholder.dart';
 import 'package:ampheria/extensions/context_extension.dart';
 
 class PeoplePage extends StatefulWidget {
@@ -102,6 +103,7 @@ class _PeoplePageState extends State<PeoplePage> {
             _loading = false;
             _loadingMore = false;
           });
+          _precacheNextProfiles();
         } else {
           setState(() {
             if (!append) {
@@ -125,11 +127,11 @@ class _PeoplePageState extends State<PeoplePage> {
   }
 
   void _ensureBuffer() {
-    const threshold = 3;
+    const threshold = 6;
     if (!_loadingMore &&
         _profiles.length - _currentIndex <= threshold &&
         !_loading) {
-      _loadProfiles(append: true, limit: 10);
+      _loadProfiles(append: true, limit: 20);
     }
   }
 
@@ -180,12 +182,19 @@ class _PeoplePageState extends State<PeoplePage> {
       _currentPhotoIndex = 0;
     });
     _ensureBuffer();
+    _precacheNextProfiles();
+  }
 
-    if (_currentIndex < _profiles.length) {
-      final nextProfile = _profiles[_currentIndex];
-      final photos = List<String>.from(nextProfile['photos'] ?? []);
-      if (photos.isNotEmpty) {
-        precacheImage(NetworkImage(photos.first), context);
+  void _precacheNextProfiles() {
+    if (!mounted) return;
+    for (int i = 0; i < 3; i++) {
+      final index = _currentIndex + i;
+      if (index < _profiles.length) {
+        final profile = _profiles[index];
+        final photos = List<String>.from(profile['photos'] ?? []);
+        if (photos.isNotEmpty) {
+          precacheImage(NetworkImage(photos.first), context);
+        }
       }
     }
   }
@@ -287,13 +296,13 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
   void initState() {
     super.initState();
     _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 250));
+        vsync: this, duration: const Duration(milliseconds: 200));
 
     _controller.addListener(() {
       if (_moveAnimation != null) {
         setState(() {
           _offset = _moveAnimation!.value;
-          _angle = _offset.dx / MediaQuery.of(context).size.width * 0.5;
+          _angle = _offset.dx / MediaQuery.of(context).size.width * 0.35;
         });
       }
     });
@@ -315,7 +324,7 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
   void _onPanUpdate(DragUpdateDetails details) {
     setState(() {
       _offset += details.delta;
-      _angle = _offset.dx / MediaQuery.of(context).size.width * 0.5;
+      _angle = _offset.dx / MediaQuery.of(context).size.width * 0.35;
     });
   }
 
@@ -334,10 +343,15 @@ class _SwipeableProfileCardState extends State<SwipeableProfileCard>
     });
 
     final screenWidth = MediaQuery.of(context).size.width;
+    final velocityX = details.velocity.pixelsPerSecond.dx;
 
-    if (_offset.dx > screenWidth * 0.30) {
+    // Prise en compte de la vitesse du geste (fling rapide > 350px/s) OU du déplacement (> 20% largeur écran)
+    final isRightSwipe = _offset.dx > screenWidth * 0.20 || velocityX > 350;
+    final isLeftSwipe = _offset.dx < -screenWidth * 0.20 || velocityX < -350;
+
+    if (isRightSwipe) {
       _animateTo(Offset(screenWidth * 1.5, _offset.dy), onComplete: widget.onLike);
-    } else if (_offset.dx < -screenWidth * 0.30) {
+    } else if (isLeftSwipe) {
       _animateTo(Offset(-screenWidth * 1.5, _offset.dy), onComplete: widget.onDislike);
     } else {
       _animateTo(Offset.zero);
@@ -627,9 +641,7 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final photos = List<String>.from(profile['photos'] ?? []);
-    final currentPhoto = photos.isNotEmpty
-        ? photos[currentPhotoIndex]
-        : "https://via.placeholder.com/400x600?text=No+Photo";
+    final name = profile['full_name'] ?? profile['username'] ?? '';
 
     return GestureDetector(
       onTapUp: (details) {
@@ -661,17 +673,19 @@ class _ProfileCard extends StatelessWidget {
                 transitionBuilder: (child, animation) {
                   return FadeTransition(opacity: animation, child: child);
                 },
-                child: Image.network(
-                  currentPhoto,
-                  key: ValueKey<String>(currentPhoto),
-                  fit: BoxFit.cover,
-                  loadingBuilder: (_, child, progress) {
-                    if (progress == null) return child;
-                    return const Center(child: CircularProgressIndicator());
-                  },
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.broken_image, color: Colors.grey),
-                ),
+                child: photos.isNotEmpty
+                    ? Image.network(
+                        photos[currentPhotoIndex],
+                        key: ValueKey<String>(photos[currentPhotoIndex]),
+                        fit: BoxFit.cover,
+                        loadingBuilder: (_, child, progress) {
+                          if (progress == null) return child;
+                          return const Center(child: CircularProgressIndicator());
+                        },
+                        errorBuilder: (context, error, stackTrace) =>
+                            ProfileImagePlaceholder(name: name),
+                      )
+                    : ProfileImagePlaceholder(name: name),
               ),
               const Positioned.fill(
                 child: DecoratedBox(

@@ -54,8 +54,8 @@ class BottomNavBar extends StatelessWidget {
             label: context.localizations.navProfile,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.volunteer_activism_outlined),
-            selectedIcon: Icon(Icons.volunteer_activism, color: primaryColor),
+            icon: const Icon(Icons.campaign_outlined),
+            selectedIcon: Icon(Icons.campaign, color: primaryColor),
             label: context.localizations.navHealth,
           ),
         ],

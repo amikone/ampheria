@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:ampheria/presentation/widgets/profile_detail_modal.dart';
+import 'package:ampheria/presentation/widgets/profile_image_placeholder.dart';
 import 'package:ampheria/extensions/context_extension.dart';
 
 class LikePage extends StatefulWidget {
@@ -128,117 +129,155 @@ class _LikePageState extends State<LikePage> {
                 crossAxisCount: 2,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
-                childAspectRatio: 0.7,
+                childAspectRatio: 0.62,
               ),
               itemBuilder: (context, index) {
                 final profile = likes[index];
                 final photos = List<String>.from(profile['photos'] ?? []);
-                final imageUrl = photos.isNotEmpty
-                    ? photos[0]
-                    : 'https://via.placeholder.com/400x400?text=No+Photo';
                 final fullName =
                     profile['full_name'] ?? profile['username'] ?? context.localizations.defaultUserName;
                 final city = profile['city'] ?? '';
 
-                return GestureDetector(
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => Container(
-                        height: MediaQuery.of(context).size.height * 0.9,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF1E1E2C),
-                          borderRadius:
-                          BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
-                        child: ProfileDetailModal(profileId: profile['id']),
+                return Card(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  clipBehavior: Clip.antiAlias,
+                  elevation: 4,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => Container(
+                              height: MediaQuery.of(context).size.height * 0.9,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF1E1E2C),
+                                borderRadius:
+                                    BorderRadius.vertical(top: Radius.circular(20)),
+                              ),
+                              child: ProfileDetailModal(profileId: profile['id']),
+                            ),
+                          );
+                        },
+                        child: photos.isNotEmpty
+                            ? Image.network(
+                                photos[0],
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    ProfileImagePlaceholder(name: fullName, iconSize: 40),
+                              )
+                            : ProfileImagePlaceholder(name: fullName, iconSize: 40),
                       ),
-                    );
-                  },
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    clipBehavior: Clip.antiAlias,
-                    elevation: 4,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                          const Center(child: Icon(Icons.broken_image)),
-                        ),
-                        DecoratedBox(
+                      IgnorePointer(
+                        child: DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
                                 Colors.transparent,
-                                Colors.black.withOpacity(0.8)
+                                Colors.black.withOpacity(0.85)
                               ],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              stops: const [0.6, 1.0],
+                              stops: const [0.45, 1.0],
                             ),
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                fullName,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                              ),
-                              if (city.isNotEmpty)
-                                Text(
-                                  city,
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontSize: 14),
-                                ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.spaceAround,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (_) => Container(
+                                    height: MediaQuery.of(context).size.height * 0.9,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF1E1E2C),
+                                      borderRadius:
+                                          BorderRadius.vertical(top: Radius.circular(20)),
+                                    ),
+                                    child: ProfileDetailModal(profileId: profile['id']),
+                                  ),
+                                );
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  ElevatedButton(
-                                    onPressed: () => _rejectLike(profile['id']),
-                                    style: ElevatedButton.styleFrom(
-                                      shape: const CircleBorder(),
-                                      padding: const EdgeInsets.all(12),
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: Colors.red,
-                                      elevation: 2,
+                                  Text(
+                                    fullName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
                                     ),
-                                    child: const Icon(Icons.close),
                                   ),
-                                  ElevatedButton(
-                                    onPressed: () => _likeBack(profile['id']),
-                                    style: ElevatedButton.styleFrom(
-                                      shape: const CircleBorder(),
-                                      padding: const EdgeInsets.all(12),
-                                      backgroundColor:
-                                      Theme.of(context).colorScheme.primary,
-                                      foregroundColor: Colors.white,
-                                      elevation: 2,
+                                  if (city.isNotEmpty)
+                                    Text(
+                                      city,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          color: Colors.white70, fontSize: 12),
                                     ),
-                                    child: const Icon(Icons.favorite),
-                                  ),
                                 ],
-                              )
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Material(
+                                  color: Colors.white,
+                                  shape: const CircleBorder(),
+                                  elevation: 3,
+                                  child: InkWell(
+                                    customBorder: const CircleBorder(),
+                                    onTap: () => _rejectLike(profile['id']),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Icon(
+                                        Icons.close,
+                                        color: Colors.red,
+                                        size: 22,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Material(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  shape: const CircleBorder(),
+                                  elevation: 3,
+                                  child: InkWell(
+                                    customBorder: const CircleBorder(),
+                                    onTap: () => _likeBack(profile['id']),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Icon(
+                                        Icons.favorite,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                      )
+                    ],
                   ),
                 );
               },

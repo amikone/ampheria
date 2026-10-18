@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ampheria/extensions/context_extension.dart';
+import 'package:ampheria/presentation/widgets/profile_image_placeholder.dart';
 
 const Color _kBackgroundBlack = Color(0xFF121212);
 const Color _kPrimaryAccent = Colors.deepPurpleAccent;
@@ -517,10 +518,16 @@ class _SliverProfileHeaderState extends State<_SliverProfileHeader> {
               itemCount: photos.isNotEmpty ? photos.length : 1,
               onPageChanged: (index) => setState(() => _currentPhotoIndex = index),
               itemBuilder: (context, index) {
-                final url = photos.isNotEmpty
-                    ? photos[index]
-                    : "https://via.placeholder.com/400x400/121212/FFFFFF?text=Aucune+Photo";
-                return Image.network(url, fit: BoxFit.cover);
+                final name = widget.profile['full_name'] ?? widget.profile['username'];
+                if (photos.isNotEmpty) {
+                  return Image.network(
+                    photos[index],
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        ProfileImagePlaceholder(name: name),
+                  );
+                }
+                return ProfileImagePlaceholder(name: name);
               },
             ),
             const DecoratedBox(

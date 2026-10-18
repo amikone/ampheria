@@ -331,7 +331,7 @@ abstract class AppLocalizations {
   /// No description provided for @navHealth.
   ///
   /// In en, this message translates to:
-  /// **'Health'**
+  /// **'Announcements'**
   String get navHealth;
 
   /// No description provided for @incompleteProfileTitle.

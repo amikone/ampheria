@@ -123,7 +123,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navProfile => 'Profil';
 
   @override
-  String get navHealth => 'Santé';
+  String get navHealth => 'Annonces';
 
   @override
   String get incompleteProfileTitle => 'Profil Incomplet';
