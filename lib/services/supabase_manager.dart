@@ -21,7 +21,7 @@ class SupabaseManager extends ChangeNotifier {
   final SupabaseConfig defaultServer = SupabaseConfig(
     name: "Amikone Officiel",
     description: "Serveur principal géré par l'équipe",
-    url: "https://amikone.endide.com",
+    url: "https://amikone-api.endide.com",
     publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY0NzE2NDAwLCJleHAiOjE5MjI0ODI4MDB9.feIlUK_yvMG3IsfIVWkdeo7f0NHHNqWOacuAhU4rBUU",
   );
 
