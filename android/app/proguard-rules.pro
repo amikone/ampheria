@@ -1,6 +1,11 @@
 # Disable aggressive R8 optimizations that break Flutter/Supabase reflection
 -dontoptimize
 
+# Flutter Deferred Components & Play Core
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }
+-keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
+
 # Flutter Wrapper & Engine
 -keep class io.flutter.app.** { *; }
 -keep class io.flutter.plugin.** { *; }
