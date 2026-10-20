@@ -17,10 +17,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SupabaseManager().initialize();
-  
-  runApp(const ProviderScope(
-  child: MyApp()));
+  try {
+    await SupabaseManager().initialize();
+  } catch (e, stackTrace) {
+    debugPrint("Erreur lors de l'initialisation de Supabase: $e\n$stackTrace");
+  }
+
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 Future<void> updateUserLocation() async {
