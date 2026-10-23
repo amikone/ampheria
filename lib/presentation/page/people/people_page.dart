@@ -11,7 +11,7 @@ class PeoplePage extends StatefulWidget {
 }
 
 class _PeoplePageState extends State<PeoplePage> {
-  final supabase = Supabase.instance.client;
+  SupabaseClient get supabase => Supabase.instance.client;
 
   List<Map<String, dynamic>> _profiles = [];
   int _currentIndex = 0;

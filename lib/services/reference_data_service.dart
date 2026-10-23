@@ -3,7 +3,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ReferenceDataService {
-  static final _supabase = Supabase.instance.client;
+  static SupabaseClient get _supabase => Supabase.instance.client;
 
   static List<String>? _cachedGenders;
   static List<String>? _cachedOrientations;

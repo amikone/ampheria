@@ -24,7 +24,7 @@ class IdentitySettingsPage extends StatefulWidget {
 }
 
 class _IdentitySettingsPageState extends State<IdentitySettingsPage> {
-  final supabase = Supabase.instance.client;
+  SupabaseClient get supabase => Supabase.instance.client;
   Timer? _debounce;
 
   late String? _myGender;

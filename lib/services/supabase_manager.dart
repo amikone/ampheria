@@ -39,12 +39,27 @@ class SupabaseManager extends ChangeNotifier {
       _currentConfig = defaultServer;
     }
 
-    await _initSupabase(_currentConfig!);
-    _initialized = true;
+    try {
+      await _initSupabase(_currentConfig!);
+      _initialized = true;
+    } catch (e) {
+      debugPrint("Erreur initialisation Supabase avec config persistance: $e");
+      if (_currentConfig?.url != defaultServer.url) {
+        _currentConfig = defaultServer;
+        await _initSupabase(defaultServer);
+        _initialized = true;
+      } else {
+        rethrow;
+      }
+    }
   }
 
   Future<void> _initSupabase(SupabaseConfig config) async {
     final sessionKey = 'sb-${config.name.replaceAll(' ', '-').toLowerCase()}-auth-token';
+
+    try {
+      await Supabase.instance.dispose();
+    } catch (_) {}
 
     await Supabase.initialize(
       url: config.url,
@@ -60,9 +75,6 @@ class SupabaseManager extends ChangeNotifier {
   Future<void> changeServer(SupabaseConfig config) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_currentServerKey, json.encode(config.toJson()));
-    
-    // Dispose current instance to allow re-initialization
-    await Supabase.instance.dispose();
     
     _currentConfig = config;
     await _initSupabase(config);

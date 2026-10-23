@@ -6,12 +6,14 @@ import 'package:ampheria/presentation/page/health/health_page.dart';
 import 'package:ampheria/presentation/page/like/like_page.dart';
 import 'package:ampheria/presentation/page/people/people_page.dart';
 import 'package:ampheria/presentation/page/profile/profile_screen.dart';
+import 'package:ampheria/presentation/page/server_picker_page.dart';
 import 'package:ampheria/presentation/widgets/bottom_nav_bar.dart';
 import 'package:ampheria/l10n/app_localizations.dart';
 import 'package:ampheria/services/supabase_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:material_ui/material_ui.dart' as material_ui;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
@@ -27,27 +29,22 @@ Future<void> main() async {
 }
 
 Future<void> updateUserLocation() async {
-  bool serviceEnabled;
-  LocationPermission permission;
-
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    return Future.error('Location services are disabled.');
-  }
-
-  permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      return Future.error('Location permissions are denied');
-    }
-  }
-
-  if (permission == LocationPermission.deniedForever) {
-    return Future.error('Location permissions are permanently denied.');
-  }
-
   try {
+    if (!SupabaseManager().initialized) return;
+
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) return;
+
     final Position position = await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.low,
@@ -63,24 +60,23 @@ Future<void> updateUserLocation() async {
       }).eq('id', userId);
     }
   } catch (e) {
-    print("Erreur lors de la récupération/mise à jour de la position: $e");
+    debugPrint("Erreur lors de la récupération/mise à jour de la position: $e");
   }
-
 }
 
-
 Future<void> updateUserActivity() async {
-  final supabase = Supabase.instance.client;
-  final userId = supabase.auth.currentUser?.id;
-
-  if (userId == null) return;
-
   try {
+    if (!SupabaseManager().initialized) return;
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+
+    if (userId == null) return;
+
     await supabase.from('profiles').update({
       'last_active_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', userId);
   } catch (e) {
-    print("Erreur lors de la mise à jour de last_active_at: $e");
+    debugPrint("Erreur lors de la mise à jour de last_active_at: $e");
   }
 }
 
@@ -92,7 +88,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Amikone',
       debugShowCheckedModeBanner: false,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: [
+        ...AppLocalizations.localizationsDelegates,
+        ...material_ui.GlobalMaterialLocalizations.delegates,
+      ],
       supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData.dark().copyWith(
         colorScheme: const ColorScheme.dark(
@@ -116,8 +115,8 @@ class MyApp extends StatelessWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white.withOpacity(0.05),
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+          fillColor: Colors.white.withValues(alpha: 0.05),
+          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
           labelStyle: const TextStyle(color: Colors.white),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -125,7 +124,7 @@ class MyApp extends StatelessWidget {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -147,7 +146,7 @@ class MyApp extends StatelessWidget {
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFFBB86FC), // High contrast light purple
+            foregroundColor: const Color(0xFFBB86FC),
             textStyle: const TextStyle(
               fontWeight: FontWeight.bold,
               decoration: TextDecoration.underline,
@@ -172,15 +171,51 @@ class AuthStateHandler extends StatefulWidget {
 }
 
 class _AuthStateHandlerState extends State<AuthStateHandler> {
-  SupabaseClient get supabase => Supabase.instance.client;
   Session? _session;
   StreamSubscription<AuthState>? _authSubscription;
+  bool _isLoading = true;
+  String? _initError;
 
   @override
   void initState() {
     super.initState();
-    _setupAuthListener();
+    _initAuth();
     SupabaseManager().addListener(_onServerChanged);
+  }
+
+  Future<void> _initAuth() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _initError = null;
+    });
+
+    try {
+      if (!SupabaseManager().initialized) {
+        await SupabaseManager().initialize();
+      }
+
+      if (SupabaseManager().initialized) {
+        final supabase = Supabase.instance.client;
+        _session = supabase.auth.currentSession;
+        _authSubscription?.cancel();
+        _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
+          if (mounted) {
+            setState(() {
+              _session = data.session;
+              _isLoading = false;
+            });
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Auth init error: $e");
+      _initError = e.toString();
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -192,25 +227,68 @@ class _AuthStateHandlerState extends State<AuthStateHandler> {
 
   void _onServerChanged() {
     if (mounted) {
-      _setupAuthListener();
+      _initAuth();
     }
-  }
-
-  void _setupAuthListener() {
-    _authSubscription?.cancel();
-    setState(() {
-      _session = supabase.auth.currentSession;
-    });
-
-    _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
-      if (mounted) {
-        setState(() => _session = data.session);
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF121212),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.deepPurpleAccent),
+        ),
+      );
+    }
+
+    if (!SupabaseManager().initialized || _initError != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF121212),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.cloud_off, size: 64, color: Colors.deepPurpleAccent),
+                const SizedBox(height: 16),
+                const Text(
+                  "Erreur de connexion au serveur",
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _initError ?? "Impossible de se connecter au service Supabase.",
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _initAuth,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text("Réessayer"),
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ServerPickerPage()),
+                    );
+                    _initAuth();
+                  },
+                  icon: const Icon(Icons.dns),
+                  label: const Text("Changer de serveur"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_session != null) {
       return const MainPage();
     } else {

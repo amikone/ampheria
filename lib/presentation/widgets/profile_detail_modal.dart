@@ -19,7 +19,7 @@ class ProfileDetailModal extends StatefulWidget {
 }
 
 class _ProfileDetailModalState extends State<ProfileDetailModal> {
-  final supabase = Supabase.instance.client;
+  SupabaseClient get supabase => Supabase.instance.client;
   late Future<Map<String, dynamic>?> _profileFuture;
 
   @override

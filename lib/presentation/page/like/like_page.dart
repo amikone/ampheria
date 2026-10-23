@@ -13,7 +13,7 @@ class LikePage extends StatefulWidget {
 }
 
 class _LikePageState extends State<LikePage> {
-  final supabase = Supabase.instance.client;
+  SupabaseClient get supabase => Supabase.instance.client;
   late Future<List<Map<String, dynamic>>> _likesFuture;
 
   @override

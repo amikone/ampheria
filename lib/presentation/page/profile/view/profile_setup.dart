@@ -27,7 +27,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
 
   String? _selectedGender;
 
-  final supabase = Supabase.instance.client;
+  SupabaseClient get supabase => Supabase.instance.client;
 
   @override
   void dispose() {
